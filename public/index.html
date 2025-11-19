@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lepší Rozvrh</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>📅 Rozvrh</h1>
+            <div class="controls">
+                <select id="typeSelect">
+                    <option value="Class">Třídy</option>
+                    <option value="Teacher">Učitelé</option>
+                    <option value="Room">Učebny</option>
+                </select>
+                <select id="valueSelect">
+                    <option value="" disabled selected>Načítám...</option>
+                </select>
+            </div>
+        </header>
+
+        <div id="loading" class="loading hidden">Načítám data...</div>
+        <div id="error" class="error hidden"></div>
+
+        <div class="timetable-grid" id="timetable">
+            <!-- Tady se vygenerují dny a hodiny -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

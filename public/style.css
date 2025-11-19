@@ -1,0 +1,138 @@
+:root {
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-main: #e0e0e0;
+    --text-dim: #a0a0a0;
+    --accent: #bb86fc;
+    --accent-hover: #9965f4;
+    --border: #333;
+    --header-bg: #1f1f1f;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    height: 100vh;
+    overflow-x: hidden;
+}
+
+.app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* HEADER */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--header-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+h1 { font-size: 1.5rem; color: var(--accent); }
+
+.controls { display: flex; gap: 10px; }
+
+select {
+    background: #2c2c2c;
+    color: white;
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 1rem;
+    outline: none;
+    cursor: pointer;
+}
+
+/* GRID ROZVRHU */
+.timetable-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5 dní */
+    gap: 15px;
+}
+
+.day-column {
+    background: #181818;
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.day-header {
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* KARTA HODINY */
+.lesson-card {
+    background: var(--card-bg);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent);
+    transition: transform 0.2s;
+    position: relative;
+}
+
+.lesson-card:hover {
+    transform: translateY(-2px);
+    background: #252525;
+}
+
+.lesson-card.changed {
+    border-left-color: #ff9800; /* Oranžová pro změny */
+}
+
+.lesson-subject {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.lesson-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.lesson-hour {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 0.7rem;
+    background: #333;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Loading & Error */
+.hidden { display: none; }
+.loading { text-align: center; padding: 20px; font-size: 1.2rem; color: var(--accent); }
+.error { text-align: center; padding: 20px; color: #ff5252; background: rgba(255, 82, 82, 0.1); border-radius: 8px; }
+
+/* MOBILNÍ ZOBRAZENÍ */
+@media (max-width: 768px) {
+    .timetable-grid {
+        grid-template-columns: 1fr; /* Dny pod sebou */
+    }
+    header { flex-direction: column; align-items: stretch; }
+    .controls { flex-direction: column; }
+    select { width: 100%; }
+}

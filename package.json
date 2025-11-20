@@ -12,5 +12,17 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "qs": "^6.11.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hatcyk/bakalari.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hatcyk/bakalari/issues"
+  },
+  "homepage": "https://github.com/hatcyk/bakalari#readme"
 }

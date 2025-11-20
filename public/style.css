@@ -1,21 +1,25 @@
 :root {
-    --bg-color: #121212;
-    --card-bg: #1e1e1e;
-    --text-main: #e0e0e0;
-    --text-dim: #a0a0a0;
-    --accent: #bb86fc;
-    --accent-hover: #9965f4;
-    --border: #333;
-    --header-bg: #1f1f1f;
+    --bg-color: #0a0a0f;
+    --card-bg: #16161f;
+    --text-main: #f0f0f3;
+    --text-dim: #9ca3af;
+    --accent: #6366f1;
+    --accent-hover: #4f46e5;
+    --border: #27272a;
+    --header-bg: #13131a;
+    --today-highlight: #8b5cf6;
+    --current-time: #10b981;
+    --changed-color: #f59e0b;
+    --shadow: rgba(0, 0, 0, 0.3);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-color);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, var(--bg-color) 0%, #1a1a2e 100%);
     color: var(--text-main);
-    height: 100vh;
+    min-height: 100vh;
     overflow-x: hidden;
 }
 
@@ -30,96 +34,209 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding: 15px;
+    margin-bottom: 24px;
+    padding: 20px 24px;
     background: var(--header-bg);
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px var(--shadow);
+    border: 1px solid var(--border);
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 16px;
+    backdrop-filter: blur(10px);
 }
 
-h1 { font-size: 1.5rem; color: var(--accent); }
+h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--today-highlight) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
 
-.controls { display: flex; gap: 10px; }
+.controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
 
 select {
-    background: #2c2c2c;
-    color: white;
+    background: var(--card-bg);
+    color: var(--text-main);
     border: 1px solid var(--border);
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 1rem;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 500;
     outline: none;
     cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+select:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* GRID ROZVRHU */
+.timetable-container {
+    overflow-x: auto;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 12px var(--shadow);
+}
+
 .timetable-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr); /* 5 dní */
-    gap: 15px;
+    display: table;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
-.day-column {
-    background: #181818;
-    border-radius: 10px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+.timetable-header {
+    display: table-row;
+    background: var(--header-bg);
 }
 
-.day-header {
+.timetable-header-cell {
+    display: table-cell;
     text-align: center;
     font-weight: 700;
+    font-size: 0.9rem;
     color: var(--accent);
-    padding-bottom: 10px;
+    padding: 16px 12px;
     border-bottom: 2px solid var(--border);
     text-transform: uppercase;
     letter-spacing: 1px;
+    position: sticky;
+    top: 0;
+    background: var(--header-bg);
+    z-index: 10;
+}
+
+.timetable-header-cell:first-child {
+    width: 60px;
+    border-right: 2px solid var(--border);
+}
+
+.timetable-header-cell.today {
+    color: var(--today-highlight);
+    border-bottom-color: var(--today-highlight);
+}
+
+.today-badge {
+    display: block;
+    margin-top: 4px;
+    padding: 2px 6px;
+    background: var(--today-highlight);
+    color: white;
+    font-size: 0.65rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.timetable-row {
+    display: table-row;
+}
+
+.timetable-row:hover {
+    background: rgba(99, 102, 241, 0.02);
+}
+
+.timetable-row.today-row {
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 0%, transparent 100%);
+}
+
+.hour-cell {
+    display: table-cell;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    padding: 12px 8px;
+    border-right: 2px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--header-bg);
+    vertical-align: middle;
+    width: 60px;
+}
+
+.lesson-cell {
+    display: table-cell;
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    vertical-align: top;
+    min-width: 150px;
+}
+
+.lesson-cell.today {
+    background: linear-gradient(135deg, transparent 0%, rgba(139, 92, 246, 0.03) 100%);
+}
+
+.lesson-cell:last-child {
+    border-right: none;
+}
+
+/* Multiple lessons in one cell (group division) */
+.lesson-cell > .lesson-card + .lesson-card {
+    margin-top: 8px;
 }
 
 /* KARTA HODINY */
 .lesson-card {
-    background: var(--card-bg);
-    padding: 12px;
+    background: rgba(99, 102, 241, 0.05);
+    padding: 10px;
     border-radius: 8px;
-    border-left: 4px solid var(--accent);
-    transition: transform 0.2s;
+    border-left: 3px solid var(--accent);
+    transition: all 0.2s ease;
     position: relative;
+    min-height: 60px;
 }
 
 .lesson-card:hover {
-    transform: translateY(-2px);
-    background: #252525;
+    background: rgba(99, 102, 241, 0.1);
+    border-left-width: 4px;
 }
 
 .lesson-card.changed {
-    border-left-color: #ff9800; /* Oranžová pro změny */
+    border-left-color: var(--changed-color);
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.lesson-card.current-time {
+    border-left-color: var(--current-time);
+    background: rgba(16, 185, 129, 0.1);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
 }
 
 .lesson-subject {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    color: var(--text-main);
+    line-height: 1.3;
 }
 
 .lesson-details {
     display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
+    flex-direction: column;
+    font-size: 0.8rem;
     color: var(--text-dim);
+    gap: 2px;
 }
 
-.lesson-hour {
-    position: absolute;
-    top: 8px;
-    right: 8px;
+.lesson-group {
     font-size: 0.7rem;
-    background: #333;
-    padding: 2px 6px;
-    border-radius: 4px;
+    color: var(--text-dim);
+    margin-top: 4px;
 }
 
 /* Loading & Error */
@@ -127,12 +244,114 @@ select {
 .loading { text-align: center; padding: 20px; font-size: 1.2rem; color: var(--accent); }
 .error { text-align: center; padding: 20px; color: #ff5252; background: rgba(255, 82, 82, 0.1); border-radius: 8px; }
 
+/* DAY SELECTOR (MOBILE) */
+.day-selector {
+    display: none;
+    margin-bottom: 16px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.day-selector button {
+    flex: 1;
+    min-width: 60px;
+    padding: 10px 16px;
+    background: var(--card-bg);
+    color: var(--text-main);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.day-selector button:hover {
+    border-color: var(--accent);
+}
+
+.day-selector button.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.day-selector button.today-btn {
+    border-color: var(--today-highlight);
+}
+
 /* MOBILNÍ ZOBRAZENÍ */
 @media (max-width: 768px) {
-    .timetable-grid {
-        grid-template-columns: 1fr; /* Dny pod sebou */
+    .app-container {
+        padding: 12px;
     }
-    header { flex-direction: column; align-items: stretch; }
-    .controls { flex-direction: column; }
-    select { width: 100%; }
+
+    header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px;
+        gap: 12px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+        text-align: center;
+    }
+
+    .controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    select {
+        width: 100%;
+        padding: 12px 16px;
+    }
+
+    .day-selector {
+        display: flex;
+    }
+
+    .timetable-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .timetable-row {
+        display: none;
+    }
+
+    .timetable-row.active {
+        display: table-row;
+    }
+
+    .hour-cell {
+        position: sticky;
+        left: 0;
+        background: var(--header-bg);
+        z-index: 5;
+        min-width: 80px;
+    }
+
+    .timetable-header-cell:first-child {
+        position: sticky;
+        left: 0;
+        background: var(--header-bg);
+        z-index: 11;
+    }
+
+    .lesson-card {
+        padding: 12px;
+    }
+
+    .lesson-subject {
+        font-size: 1rem;
+    }
+
+    .lesson-cell {
+        min-width: 120px;
+    }
 }

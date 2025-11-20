@@ -3,9 +3,52 @@ const valueSelect = document.getElementById('valueSelect');
 const timetableGrid = document.getElementById('timetable');
 const loading = document.getElementById('loading');
 const errorDiv = document.getElementById('error');
+const daySelector = document.getElementById('daySelector');
 
 // Globální proměnná pro data definic
 let definitions = {};
+let currentTimetableData = [];
+let selectedDayIndex = null;
+
+// Utility funkce pro získání dnešního dne (0-4 = Po-Pá)
+function getTodayIndex() {
+    const day = new Date().getDay(); // 0=Neděle, 1=Po, ..., 5=Pá
+    return day === 0 || day === 6 ? -1 : day - 1; // Vrátí -1 pro víkend
+}
+
+// Časová rozmezí hodin
+const lessonTimes = [
+    { hour: 0, start: [7, 10], end: [7, 55], label: '7:10-7:55' },
+    { hour: 1, start: [8, 0], end: [8, 45], label: '8:00-8:45' },
+    { hour: 2, start: [8, 50], end: [9, 35], label: '8:50-9:35' },
+    { hour: 3, start: [9, 45], end: [10, 30], label: '9:45-10:30' },
+    { hour: 4, start: [10, 50], end: [11, 35], label: '10:50-11:35' },
+    { hour: 5, start: [11, 40], end: [12, 25], label: '11:40-12:25' },
+    { hour: 6, start: [12, 35], end: [13, 20], label: '12:35-13:20' },
+    { hour: 7, start: [13, 25], end: [14, 10], label: '13:25-14:10' },
+    { hour: 8, start: [14, 20], end: [15, 5], label: '14:20-15:05' },
+    { hour: 9, start: [15, 10], end: [15, 55], label: '15:10-15:55' },
+    { hour: 10, start: [16, 0], end: [16, 45], label: '16:00-16:45' },
+    { hour: 11, start: [16, 50], end: [17, 35], label: '16:50-17:35' },
+    { hour: 12, start: [17, 40], end: [18, 25], label: '17:40-18:25' }
+];
+
+// Utility funkce pro získání aktuální hodiny (0-12)
+function getCurrentHour() {
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+
+    for (const lesson of lessonTimes) {
+        const [startH, startM] = lesson.start;
+        const [endH, endM] = lesson.end;
+        if ((hour > startH || (hour === startH && minute >= startM)) &&
+            (hour < endH || (hour === endH && minute <= endM))) {
+            return lesson.hour;
+        }
+    }
+    return -1; // Mimo vyučování
+}
 
 // 1. Start aplikace
 async function init() {
@@ -79,13 +122,15 @@ async function loadTimetable() {
     try {
         const res = await fetch(`/api/timetable?type=${type}&id=${id}`);
         if (!res.ok) throw new Error("Chyba serveru");
-        
+
         const data = await res.json();
-        
+
         if (data.error) {
             throw new Error(data.error);
         }
 
+        currentTimetableData = data;
+        createDaySelector();
         renderTimetable(data);
 
     } catch (e) {
@@ -95,43 +140,147 @@ async function loadTimetable() {
     }
 }
 
+// Vytvoření day selectoru pro mobily
+function createDaySelector() {
+    const days = ['Po', 'Út', 'St', 'Čt', 'Pá'];
+    const todayIndex = getTodayIndex();
+
+    // Výchozí vybraný den je dnes, nebo pondělí pokud je víkend
+    if (selectedDayIndex === null) {
+        selectedDayIndex = todayIndex >= 0 ? todayIndex : 0;
+    }
+
+    daySelector.innerHTML = '';
+
+    days.forEach((day, index) => {
+        const btn = document.createElement('button');
+        btn.textContent = day;
+        btn.className = index === selectedDayIndex ? 'active' : '';
+        if (index === todayIndex) {
+            btn.classList.add('today-btn');
+        }
+        btn.addEventListener('click', () => selectDay(index));
+        daySelector.appendChild(btn);
+    });
+}
+
+// Výběr dne na mobilu
+function selectDay(index) {
+    selectedDayIndex = index;
+    createDaySelector(); // Re-render buttons
+    updateMobileDayView();
+}
+
+// Aktualizace viditelnosti dnů na mobilu
+function updateMobileDayView() {
+    // Na mobilu zobrazit pouze vybraný den (řádek)
+    const rows = document.querySelectorAll('.timetable-row');
+    rows.forEach((row, index) => {
+        if (index === selectedDayIndex) {
+            row.classList.add('active');
+        } else {
+            row.classList.remove('active');
+        }
+    });
+}
+
 // 4. Vykreslení HTML
 function renderTimetable(data) {
     const days = ['Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek'];
-    
-    // Vytvoříme 5 sloupců pro dny
-    for (let i = 0; i < 5; i++) {
-        const col = document.createElement('div');
-        col.className = 'day-column';
-        
-        // Nadpis dne
-        col.innerHTML = `<div class="day-header">${days[i]}</div>`;
+    const todayIndex = getTodayIndex();
+    const currentHour = getCurrentHour();
 
-        // Vyfiltrujeme hodiny pro tento den a seřadíme
-        const lessons = data.filter(d => d.day === i).sort((a, b) => a.hour - b.hour);
+    // Zjistíme všechny hodiny, které se vyskytují v rozvrhu
+    const allHours = [...new Set(data.map(d => d.hour))].sort((a, b) => a - b);
+    const maxHour = Math.max(...allHours, 0);
 
-        if (lessons.length === 0) {
-            col.innerHTML += `<div style="text-align:center; color:#555; padding:20px;">Volno 🎉</div>`;
+    // Vytvoříme hlavičku tabulky s hodinami
+    const headerRow = document.createElement('div');
+    headerRow.className = 'timetable-header';
+
+    // První buňka - prázdná (roh)
+    const cornerCell = document.createElement('div');
+    cornerCell.className = 'timetable-header-cell';
+    cornerCell.textContent = '';
+    headerRow.appendChild(cornerCell);
+
+    // Hlavičky pro hodiny
+    for (let hour = 0; hour <= maxHour; hour++) {
+        const headerCell = document.createElement('div');
+        headerCell.className = 'timetable-header-cell';
+
+        const timeInfo = lessonTimes.find(t => t.hour === hour);
+        headerCell.innerHTML = `
+            <div style="font-size: 0.85rem;">${hour}.</div>
+            <div style="font-size: 0.65rem; font-weight: 400; margin-top: 2px; opacity: 0.8;">${timeInfo ? timeInfo.label : ''}</div>
+        `;
+
+        headerRow.appendChild(headerCell);
+    }
+
+    timetableGrid.appendChild(headerRow);
+
+    // Vytvoříme řádky pro každý den
+    days.forEach((day, dayIndex) => {
+        const row = document.createElement('div');
+        row.className = 'timetable-row';
+
+        // Zvýraznění dnešního řádku
+        if (dayIndex === todayIndex) {
+            row.classList.add('today-row');
         }
 
-        lessons.forEach(lesson => {
-            const card = document.createElement('div');
-            card.className = `lesson-card ${lesson.changed ? 'changed' : ''}`;
-            
-            card.innerHTML = `
-                <div class="lesson-hour">${lesson.hour}.</div>
-                <div class="lesson-subject">${lesson.subject}</div>
-                <div class="lesson-details">
-                    <span>${lesson.teacher || ''}</span>
-                    <span>${lesson.room || ''}</span>
-                </div>
-                ${lesson.group ? `<div style="font-size:0.7rem; color:#888; margin-top:4px;">${lesson.group}</div>` : ''}
-            `;
-            col.appendChild(card);
-        });
+        // První buňka - název dne
+        const dayCell = document.createElement('div');
+        dayCell.className = 'hour-cell';
+        dayCell.innerHTML = `
+            <div style="font-weight: 700;">${day}</div>
+            ${dayIndex === todayIndex ? '<div class="today-badge" style="margin-top: 4px;">DNES</div>' : ''}
+        `;
+        row.appendChild(dayCell);
 
-        timetableGrid.appendChild(col);
-    }
+        // Buňky pro jednotlivé hodiny
+        for (let hour = 0; hour <= maxHour; hour++) {
+            const lessonCell = document.createElement('div');
+            lessonCell.className = 'lesson-cell';
+
+            if (dayIndex === todayIndex) {
+                lessonCell.classList.add('today');
+            }
+
+            // Najdeme všechny hodiny pro tento den a hodinu
+            const lessons = data.filter(d => d.day === dayIndex && d.hour === hour);
+
+            lessons.forEach(lesson => {
+                const card = document.createElement('div');
+                let cardClass = 'lesson-card';
+                if (lesson.changed) cardClass += ' changed';
+
+                // Zvýraznění aktuální hodiny
+                if (dayIndex === todayIndex && hour === currentHour) {
+                    cardClass += ' current-time';
+                }
+                card.className = cardClass;
+
+                card.innerHTML = `
+                    <div class="lesson-subject">${lesson.subject}</div>
+                    <div class="lesson-details">
+                        ${lesson.teacher ? `<span>${lesson.teacher}</span>` : ''}
+                        ${lesson.room ? `<span>${lesson.room}</span>` : ''}
+                    </div>
+                    ${lesson.group ? `<div class="lesson-group">${lesson.group}</div>` : ''}
+                `;
+                lessonCell.appendChild(card);
+            });
+
+            row.appendChild(lessonCell);
+        }
+
+        timetableGrid.appendChild(row);
+    });
+
+    // Aktualizovat viditelnost dnů na mobilu
+    updateMobileDayView();
 }
 
 function showError(msg) {

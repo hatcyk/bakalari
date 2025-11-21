@@ -1,14 +1,29 @@
 :root {
-    --bg-color: #0a0a0f;
-    --card-bg: #16161f;
-    --text-main: #f0f0f3;
-    --text-dim: #9ca3af;
-    --accent: #6366f1;
-    --accent-hover: #4f46e5;
-    --border: #27272a;
+    /* SPŠD Brand Colors - Dark Mode */
+    --bg-color: hsl(222.2, 84%, 4.9%);
+    --card-bg: hsl(217.2, 32.6%, 17.5%);
+    --text-main: hsl(210, 40%, 98%);
+    --text-dim: hsl(215, 20.2%, 65.1%);
+    --accent: hsl(217.2, 91.2%, 59.8%); /* SPŠD Blue */
+    --accent-hover: hsl(221.2, 83.2%, 53.3%);
+    --border: hsl(217.2, 32.6%, 17.5%);
     --error: #ef4444;
     --success: #10b981;
-    --shadow: rgba(0, 0, 0, 0.3);
+    --shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* Light Mode */
+[data-theme="light"] {
+    --bg-color: hsl(210, 40%, 98%);
+    --card-bg: hsl(0, 0%, 100%);
+    --text-main: hsl(222.2, 47%, 11%);
+    --text-dim: hsl(215.4, 16.3%, 46.9%);
+    --accent: hsl(217.2, 91.2%, 59.8%);
+    --accent-hover: hsl(221.2, 83.2%, 53.3%);
+    --border: hsl(214.3, 31.8%, 91.4%);
+    --error: #ef4444;
+    --success: #10b981;
+    --shadow: rgba(99, 102, 241, 0.08);
 }
 
 * {
@@ -19,13 +34,21 @@
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, var(--bg-color) 0%, #1a1a2e 100%);
+    background: var(--bg-color);
     color: var(--text-main);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
+}
+
+[data-theme="dark"] body {
+    background: linear-gradient(135deg, var(--bg-color) 0%, hsl(222, 47%, 11%) 100%);
+}
+
+[data-theme="light"] body {
+    background: linear-gradient(135deg, hsl(210, 40%, 98%) 0%, hsl(220, 60%, 97%) 100%);
 }
 
 .login-container {
@@ -46,14 +69,27 @@ body {
     margin-bottom: 32px;
 }
 
+.login-logo {
+    width: 80px;
+    height: auto;
+    margin: 0 auto 16px;
+    display: block;
+}
+
 .login-header h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-main);
     margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.login-header h1 svg {
+    stroke: var(--accent);
+    flex-shrink: 0;
 }
 
 .login-header p {
@@ -123,7 +159,7 @@ body {
 }
 
 .login-btn {
-    background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+    background: var(--accent);
     color: white;
     border: none;
     border-radius: 12px;
@@ -137,8 +173,9 @@ body {
 }
 
 .login-btn:hover {
+    background: var(--accent-hover);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
 }
 
 .login-btn:active {

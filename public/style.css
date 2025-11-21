@@ -1,26 +1,51 @@
 :root {
-    --bg-color: #0a0a0f;
-    --card-bg: #16161f;
-    --text-main: #f0f0f3;
-    --text-dim: #9ca3af;
-    --accent: #6366f1;
-    --accent-hover: #4f46e5;
-    --border: #27272a;
-    --header-bg: #13131a;
-    --today-highlight: #8b5cf6;
+    /* SPŠD Brand Colors - Dark Mode (default) */
+    --bg-color: hsl(222.2, 84%, 4.9%);
+    --card-bg: hsl(217.2, 32.6%, 17.5%);
+    --text-main: hsl(210, 40%, 98%);
+    --text-dim: hsl(215, 20.2%, 65.1%);
+    --accent: hsl(217.2, 91.2%, 59.8%); /* SPŠD Blue #3b82f6 */
+    --accent-hover: hsl(221.2, 83.2%, 53.3%);
+    --border: hsl(217.2, 32.6%, 17.5%);
+    --header-bg: hsl(240, 5.9%, 10%);
+    --today-highlight: hsl(224.3, 76.3%, 48%);
     --current-time: #10b981;
     --changed-color: #f59e0b;
-    --shadow: rgba(0, 0, 0, 0.3);
+    --shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* Light Mode */
+[data-theme="light"] {
+    --bg-color: hsl(210, 40%, 98%);
+    --card-bg: hsl(0, 0%, 100%);
+    --text-main: hsl(222.2, 47%, 11%);
+    --text-dim: hsl(215.4, 16.3%, 46.9%);
+    --accent: hsl(217.2, 91.2%, 59.8%);
+    --accent-hover: hsl(221.2, 83.2%, 53.3%);
+    --border: hsl(214.3, 31.8%, 91.4%);
+    --header-bg: hsl(0, 0%, 100%);
+    --today-highlight: hsl(224.3, 76.3%, 48%);
+    --current-time: #10b981;
+    --changed-color: #f59e0b;
+    --shadow: rgba(99, 102, 241, 0.08);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, var(--bg-color) 0%, #1a1a2e 100%);
+    background: var(--bg-color);
     color: var(--text-main);
     min-height: 100vh;
     overflow-x: hidden;
+}
+
+[data-theme="dark"] body {
+    background: linear-gradient(135deg, var(--bg-color) 0%, hsl(222, 47%, 11%) 100%);
+}
+
+[data-theme="light"] body {
+    background: linear-gradient(135deg, hsl(210, 40%, 98%) 0%, hsl(220, 60%, 97%) 100%);
 }
 
 .app-container {
@@ -35,7 +60,7 @@ header {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
-    padding: 20px 24px;
+    padding: 16px 24px;
     background: var(--header-bg);
     border-radius: 16px;
     box-shadow: 0 4px 20px var(--shadow);
@@ -45,13 +70,34 @@ header {
     backdrop-filter: blur(10px);
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.spsd-logo {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+}
+
 h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--today-highlight) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+h1 .calendar-icon {
+    flex-shrink: 0;
+}
+
+/* Gradient for SVG */
+h1 svg {
+    stroke: var(--accent);
 }
 
 .user-section {
@@ -60,21 +106,63 @@ h1 {
     gap: 12px;
 }
 
+.theme-toggle {
+    background: var(--card-bg);
+    color: var(--text-main);
+    border: 2px solid var(--border);
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+}
+
+.theme-toggle:hover {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.1);
+    transform: rotate(15deg);
+}
+
+.theme-toggle svg {
+    transition: all 0.2s ease;
+}
+
+.sun-icon {
+    display: none;
+}
+
+.moon-icon {
+    display: block;
+}
+
+[data-theme="light"] .sun-icon {
+    display: block;
+}
+
+[data-theme="light"] .moon-icon {
+    display: none;
+}
+
 .user-name {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-main);
-    padding: 8px 12px;
-    background: rgba(99, 102, 241, 0.1);
-    border-radius: 8px;
+    padding: 10px 14px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .logout-btn {
     background: var(--card-bg);
     color: var(--text-main);
-    border: 1px solid var(--border);
-    padding: 8px 16px;
-    border-radius: 8px;
+    border: 2px solid var(--border);
+    padding: 10px 18px;
+    border-radius: 10px;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
@@ -85,6 +173,7 @@ h1 {
     background: rgba(239, 68, 68, 0.1);
     border-color: #ef4444;
     color: #ef4444;
+    transform: translateY(-1px);
 }
 
 .controls {
@@ -93,28 +182,166 @@ h1 {
     flex-wrap: wrap;
 }
 
-select {
+/* Type Button Group */
+.type-buttons {
+    display: flex;
+    gap: 6px;
     background: var(--card-bg);
-    color: var(--text-main);
-    border: 1px solid var(--border);
-    padding: 10px 16px;
-    border-radius: 10px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    outline: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
     box-shadow: 0 2px 8px var(--shadow);
 }
 
-select:hover {
-    border-color: var(--accent);
-    box-shadow: 0 4px 12px var(--shadow);
+.type-btn {
+    background: transparent;
+    color: var(--text-dim);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
-select:focus {
+.type-btn:hover {
+    background: var(--bg-color);
+    color: var(--text-main);
+}
+
+.type-btn.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Custom Select Dropdown */
+.custom-select {
+    position: relative;
+    min-width: 160px;
+}
+
+.select-trigger {
+    background: var(--card-bg);
+    color: var(--text-main);
+    border: 2px solid var(--border);
+    padding: 12px 40px 12px 16px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+}
+
+.select-trigger:hover {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 4px 12px var(--shadow);
+    transform: translateY(-1px);
+}
+
+.custom-select.open .select-trigger {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.select-value {
+    flex: 1;
+    color: var(--text-main);
+}
+
+.select-arrow {
+    position: absolute;
+    right: 12px;
+    stroke: var(--accent);
+    transition: transform 0.2s ease;
+}
+
+.custom-select.open .select-arrow {
+    transform: rotate(180deg);
+}
+
+.select-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    border: 2px solid var(--accent);
+    border-top: none;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    box-shadow: 0 8px 24px var(--shadow);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+}
+
+.custom-select.open .select-options {
+    display: block;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.select-option {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.95rem;
+    color: var(--text-main);
+}
+
+.select-option:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.select-option.active {
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+}
+
+.select-option:last-child {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+/* Scrollbar for options */
+.select-options::-webkit-scrollbar {
+    width: 8px;
+}
+
+.select-options::-webkit-scrollbar-track {
+    background: var(--card-bg);
+    border-bottom-right-radius: 10px;
+}
+
+.select-options::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+.select-options::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-hover);
 }
 
 /* GRID ROZVRHU */
@@ -127,41 +354,30 @@ select:focus {
 }
 
 .timetable-grid {
-    display: table;
+    display: grid;
+    grid-template-columns: 120px repeat(12, minmax(140px, 1fr));
+    grid-template-rows: auto repeat(5, minmax(120px, auto));
+    gap: 0;
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.timetable-header {
-    display: table-row;
-    background: var(--header-bg);
 }
 
 .timetable-header-cell {
-    display: table-cell;
     text-align: center;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--accent);
-    padding: 16px 12px;
+    padding: 16px 8px;
     border-bottom: 2px solid var(--border);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    position: sticky;
-    top: 0;
+    border-right: 1px solid var(--border);
     background: var(--header-bg);
-    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .timetable-header-cell:first-child {
-    width: 60px;
     border-right: 2px solid var(--border);
-}
-
-.timetable-header-cell.today {
-    color: var(--today-highlight);
-    border-bottom-color: var(--today-highlight);
 }
 
 .today-badge {
@@ -175,47 +391,42 @@ select:focus {
     font-weight: 600;
 }
 
-.timetable-row {
-    display: table-row;
-}
-
-.timetable-row:hover {
-    background: rgba(99, 102, 241, 0.02);
-}
-
-.timetable-row.today-row {
-    background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 0%, transparent 100%);
-}
-
-.hour-cell {
-    display: table-cell;
+.day-cell {
     text-align: center;
     font-weight: 700;
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    padding: 12px 8px;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    padding: 16px 12px;
     border-right: 2px solid var(--border);
     border-bottom: 1px solid var(--border);
     background: var(--header-bg);
-    vertical-align: middle;
-    width: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.day-cell.today {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, var(--header-bg) 100%);
 }
 
 .lesson-cell {
-    display: table-cell;
     padding: 8px;
     border-bottom: 1px solid var(--border);
     border-right: 1px solid var(--border);
-    vertical-align: top;
-    min-width: 150px;
+    background: var(--bg-color);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .lesson-cell.today {
-    background: linear-gradient(135deg, transparent 0%, rgba(139, 92, 246, 0.03) 100%);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.03) 0%, var(--bg-color) 100%);
 }
 
-.lesson-cell:last-child {
-    border-right: none;
+.lesson-cell.current-hour {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, var(--bg-color) 100%);
+    box-shadow: inset 0 0 0 2px rgba(139, 92, 246, 0.3);
 }
 
 /* Multiple lessons in one cell (group division) */
@@ -234,9 +445,21 @@ select:focus {
     min-height: 60px;
 }
 
+[data-theme="light"] .lesson-card {
+    background: hsl(0, 0%, 100%);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
 .lesson-card:hover {
     background: rgba(99, 102, 241, 0.1);
     border-left-width: 4px;
+}
+
+[data-theme="light"] .lesson-card:hover {
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    transform: translateY(-2px);
 }
 
 .lesson-card.changed {
@@ -244,10 +467,20 @@ select:focus {
     background: rgba(245, 158, 11, 0.08);
 }
 
+[data-theme="light"] .lesson-card.changed {
+    background: rgba(245, 158, 11, 0.05);
+    border-left-color: var(--changed-color);
+}
+
 .lesson-card.current-time {
     border-left-color: var(--current-time);
     background: rgba(16, 185, 129, 0.1);
     box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="light"] .lesson-card.current-time {
+    background: rgba(16, 185, 129, 0.08);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .lesson-subject {
@@ -319,72 +552,159 @@ select:focus {
 /* MOBILNÍ ZOBRAZENÍ */
 @media (max-width: 768px) {
     .app-container {
-        padding: 12px;
+        padding: 8px;
     }
 
     header {
         flex-direction: column;
         align-items: stretch;
-        padding: 16px;
+        padding: 12px;
         gap: 12px;
     }
 
+    .header-left {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .spsd-logo {
+        height: 32px;
+    }
+
     h1 {
-        font-size: 1.5rem;
-        text-align: center;
+        font-size: 1.1rem;
     }
 
     .controls {
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
+        width: 100%;
     }
 
-    select {
+    .type-buttons {
         width: 100%;
-        padding: 12px 16px;
+        justify-content: space-between;
+    }
+
+    .type-btn {
+        flex: 1;
+        padding: 10px 12px;
+        font-size: 0.85rem;
+    }
+
+    .custom-select {
+        width: 100%;
+    }
+
+    .user-section {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .user-name {
+        font-size: 0.85rem;
+    }
+
+    .logout-btn,
+    .theme-toggle {
+        padding: 8px 14px;
+        font-size: 0.85rem;
     }
 
     .day-selector {
         display: flex;
+        margin-bottom: 12px;
+    }
+
+    .day-selector button {
+        flex: 1;
+        padding: 10px;
+        font-size: 0.85rem;
     }
 
     .timetable-container {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
     }
 
-    .timetable-row {
+    /* Na mobilu změnit grid na 2 řádky: header a selected day */
+    .timetable-grid {
+        grid-template-columns: 60px repeat(12, minmax(100px, 1fr));
+        grid-template-rows: auto auto;
+        font-size: 0.85rem;
+    }
+
+    /* Na mobilu skrýt všechny buňky kromě vybraného dne */
+    .timetable-grid > * {
         display: none;
     }
 
-    .timetable-row.active {
-        display: table-row;
+    /* Zobrazit hlavičku (první 13 buněk: corner + 12 hours) */
+    .timetable-grid > .timetable-header-cell {
+        display: flex;
     }
 
-    .hour-cell {
-        position: sticky;
-        left: 0;
-        background: var(--header-bg);
-        z-index: 5;
-        min-width: 80px;
+    /* Zobrazit pouze aktivní den */
+    .timetable-grid > .active {
+        display: flex !important;
     }
 
+    .timetable-header-cell {
+        padding: 10px 4px;
+        font-size: 0.75rem;
+    }
+
+    .timetable-header-cell div:first-child {
+        font-size: 0.8rem;
+    }
+
+    .timetable-header-cell div:last-child {
+        font-size: 0.6rem;
+    }
+
+    .day-cell {
+        padding: 10px 4px;
+        font-size: 0.8rem;
+        min-width: 60px;
+    }
+
+    .day-cell,
     .timetable-header-cell:first-child {
         position: sticky;
         left: 0;
         background: var(--header-bg);
-        z-index: 11;
-    }
-
-    .lesson-card {
-        padding: 12px;
-    }
-
-    .lesson-subject {
-        font-size: 1rem;
+        z-index: 10;
     }
 
     .lesson-cell {
-        min-width: 120px;
+        padding: 4px;
+        min-height: 80px;
+    }
+
+    .lesson-card {
+        padding: 8px;
+        min-height: 50px;
+    }
+
+    .lesson-subject {
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+    }
+
+    .lesson-details {
+        font-size: 0.7rem;
+        gap: 4px;
+    }
+
+    .lesson-group {
+        font-size: 0.7rem;
+    }
+
+    .today-badge {
+        font-size: 0.55rem;
+        padding: 2px 4px;
     }
 }

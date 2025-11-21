@@ -3,7 +3,7 @@ import { days, lessonTimes } from './constants.js';
 import { state, updateState } from './state.js';
 import { loadTimetable, populateValueSelect } from './timetable.js';
 import { parseChangeInfo } from './utils.js';
-import { setDropdownValue, openDropdown } from './dropdown.js';
+import { setDropdownValue } from './dropdown.js';
 
 // Modal functions
 export function showLessonModal(lesson) {
@@ -159,9 +159,6 @@ function setupModalLinks() {
 
                 // Load timetable
                 await loadTimetable();
-
-                // Auto-open dropdown to show options
-                openDropdown();
             }
         });
     });

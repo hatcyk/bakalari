@@ -39,6 +39,9 @@ export const subjectAbbreviations = {
     'Biologie, ekologie a chemie': 'BECH',
     'Ekologie a chemie': 'ECH',
     'Zeměpis': 'ZEM',
+    'Virtualizace': 'VIR',
+    'Webdesign': 'WD',
+    'Třídnická hodina': 'TH',
 
     // Odborné předměty
     'Ekonomika': 'EKO',

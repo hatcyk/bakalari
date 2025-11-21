@@ -122,7 +122,6 @@
 }
 
 .lesson-cell:empty {
-    background: var(--empty-cell-bg);
     position: relative;
 }
 
@@ -166,7 +165,6 @@
     padding: 30px 20px;
     text-align: center;
     vertical-align: middle;
-    background: var(--accent-light);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid var(--border);
     color: var(--text-main);

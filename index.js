@@ -175,31 +175,42 @@ app.get('/api/timetable', requireAuth, async (req, res) => {
         // Try API endpoint
         try {
             const apiResponse = await axios.get('https://mot-spsd.bakalari.cz/api/3/timetable/actual', { headers });
-            console.log('Timetable API response received');
+            console.log(`Timetable API response received for ${type}/${id}`);
+            console.log(`Days in response: ${apiResponse.data.Days?.length || 0}`);
 
             // Parse API response
-            // This structure depends on Bakaláři API format
-            if (apiResponse.data && apiResponse.data.Hours) {
+            if (apiResponse.data && apiResponse.data.Days) {
                 const timetable = [];
-                apiResponse.data.Hours.forEach(hour => {
-                    if (hour.Atoms) {
-                        hour.Atoms.forEach(atom => {
+                const hours = apiResponse.data.Hours || [];
+
+                apiResponse.data.Days.forEach((day, dayIdx) => {
+                    console.log(`Day ${dayIdx}: ${day.DayOfWeek}, Atoms: ${day.Atoms?.length || 0}`);
+                    if (day.Atoms && day.Atoms.length > 0) {
+                        day.Atoms.forEach(atom => {
+                            // Find hour info
+                            const hourInfo = hours.find(h => h.Id === atom.HourId);
+                            const hourIndex = hourInfo ? parseInt(hourInfo.Caption) : 0;
+
                             timetable.push({
-                                day: atom.DayOfWeek - 1, // 1=Po, convert to 0-based
-                                hour: hour.BeginTime, // or atom.HourId
-                                subject: atom.SubjectText || '',
+                                day: day.DayOfWeek - 1, // 1=Po, convert to 0-based
+                                hour: hourIndex,
+                                subject: atom.SubjectAbbrev || '',
                                 teacher: atom.TeacherAbbrev || '',
                                 room: atom.RoomAbbrev || '',
                                 group: atom.GroupAbbrev || '',
-                                changed: atom.Change !== null
+                                changed: !!atom.Change
                             });
                         });
                     }
                 });
+
+                console.log(`Parsed ${timetable.length} lessons for ${type}/${id}`);
                 return res.json(timetable);
+            } else {
+                console.log('No Days in API response');
             }
         } catch (apiError) {
-            console.log('API timetable failed:', apiError.response?.status);
+            console.log('API timetable failed:', apiError.response?.status, apiError.message);
         }
 
         // Fallback: return empty timetable for now
@@ -224,44 +235,62 @@ app.get('/api/definitions', requireAuth, async (req, res) => {
             'Authorization': `Bearer ${accessToken}`
         };
 
-        // Try to fetch from the API - try different endpoints
-        console.log('Trying API endpoints...');
+        // Fetch timetable data which contains all definitions
+        const actualResponse = await axios.get('https://mot-spsd.bakalari.cz/api/3/timetable/actual', { headers });
 
-        // Try /api/3/timetable/actual
-        try {
-            const actualResponse = await axios.get('https://mot-spsd.bakalari.cz/api/3/timetable/actual', { headers });
-            console.log('Actual timetable response:', actualResponse.data);
-        } catch (e) {
-            console.log('Actual endpoint failed:', e.response?.status);
-        }
-
-        // Try /api/3/user
-        try {
-            const userResponse = await axios.get('https://mot-spsd.bakalari.cz/api/3/user', { headers });
-            console.log('User response:', userResponse.data);
-        } catch (e) {
-            console.log('User endpoint failed:', e.response?.status);
-        }
-
-        // Fallback: use hardcoded classes from your school
-        // Based on typical Czech school structure
         const data = {
-            classes: [
-                { id: 'ZL', name: '4.L' },
-                { id: 'A1', name: '1.A' },
-                { id: 'A2', name: '2.A' },
-                { id: 'A3', name: '3.A' },
-                { id: 'A4', name: '4.A' },
-                { id: 'B1', name: '1.B' },
-                { id: 'B2', name: '2.B' },
-                { id: 'B3', name: '3.B' },
-                { id: 'B4', name: '4.B' }
-            ],
+            classes: [],
             teachers: [],
             rooms: []
         };
 
-        console.log('Using fallback data:', data);
+        // Parse classes from Groups (contains all classes/groups)
+        if (actualResponse.data.Groups && actualResponse.data.Groups.length > 0) {
+            const classesSet = new Set();
+            actualResponse.data.Groups.forEach(group => {
+                classesSet.add(JSON.stringify({
+                    id: group.ClassId,
+                    name: group.Abbrev.split(' ')[0] // "3.A 2.sk" -> "3.A"
+                }));
+            });
+            data.classes = Array.from(classesSet).map(s => JSON.parse(s));
+        }
+
+        // Add more classes if needed (fallback to common structure)
+        if (data.classes.length < 5) {
+            const additionalClasses = [
+                { id: 'ZA', name: '1.A' },
+                { id: 'ZB', name: '2.A' },
+                { id: 'ZC', name: '3.A' },
+                { id: 'ZD', name: '3.A' },
+                { id: 'ZE', name: '4.A' },
+                { id: 'ZL', name: '4.L' }
+            ];
+            const existing = new Set(data.classes.map(c => c.id));
+            additionalClasses.forEach(cls => {
+                if (!existing.has(cls.id)) {
+                    data.classes.push(cls);
+                }
+            });
+        }
+
+        // Parse teachers - use full names
+        if (actualResponse.data.Teachers) {
+            data.teachers = actualResponse.data.Teachers.map(teacher => ({
+                id: teacher.Id,
+                name: teacher.Name // Full name instead of Abbrev
+            }));
+        }
+
+        // Parse rooms
+        if (actualResponse.data.Rooms) {
+            data.rooms = actualResponse.data.Rooms.map(room => ({
+                id: room.Id,
+                name: room.Abbrev
+            }));
+        }
+
+        console.log('Parsed definitions:', data);
         res.json(data);
     } catch (e) {
         console.error('Definitions error:', e.response?.data || e.message);

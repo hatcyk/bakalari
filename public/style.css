@@ -274,7 +274,9 @@ h1 svg {
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--card-bg);
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 2px solid var(--accent);
     border-top: none;
     border-bottom-left-radius: 12px;
@@ -284,6 +286,10 @@ h1 svg {
     overflow-y: auto;
     z-index: 100;
     display: none;
+}
+
+[data-theme="light"] .select-options {
+    background: rgba(255, 255, 255, 0.95);
 }
 
 .custom-select.open .select-options {

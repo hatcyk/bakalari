@@ -1,14 +1,66 @@
-const typeSelect = document.getElementById('typeSelect');
+const typeButtons = document.querySelectorAll('.type-btn');
 const valueSelect = document.getElementById('valueSelect');
 const timetableGrid = document.getElementById('timetable');
 const loading = document.getElementById('loading');
 const errorDiv = document.getElementById('error');
 const daySelector = document.getElementById('daySelector');
+const themeToggle = document.getElementById('themeToggle');
 
 // Globální proměnná pro data definic
 let definitions = {};
 let currentTimetableData = [];
 let selectedDayIndex = null;
+let selectedType = 'Class'; // Default type
+
+// Theme management
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    
+    const sunIcon = themeToggle.querySelector('.sun-icon');
+    const moonIcon = themeToggle.querySelector('.moon-icon');
+    
+    if (theme === 'light') {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+    } else {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+}
+
+themeToggle.addEventListener('click', toggleTheme);
+
+// Type button handlers
+function updateTypeButtons() {
+    typeButtons.forEach(btn => {
+        if (btn.dataset.type === selectedType) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
+
+typeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        selectedType = btn.dataset.type;
+        updateTypeButtons();
+        populateValueSelect();
+        loadTimetable();
+    });
+});
 
 // Utility funkce pro získání dnešního dne (0-4 = Po-Pá)
 function getTodayIndex() {
@@ -65,13 +117,15 @@ async function init() {
         const savedValue = localStorage.getItem('selectedValue');
 
         if (savedType && savedValue) {
-            typeSelect.value = savedType;
+            selectedType = savedType;
+            updateTypeButtons();
             populateValueSelect(); // Překreslit možnosti
             valueSelect.value = savedValue;
             loadTimetable(); // Načíst rozvrh
         } else {
             // Defaultně zkusíme vybrat třídu ZL (4.L) pokud existuje
-            typeSelect.value = 'Class';
+            selectedType = 'Class';
+            updateTypeButtons();
             populateValueSelect();
             valueSelect.value = 'ZL'; 
             loadTimetable();
@@ -84,12 +138,11 @@ async function init() {
 
 // 2. Naplnění selectboxu podle typu
 function populateValueSelect() {
-    const type = typeSelect.value; // Class, Teacher, Room
     let data = [];
 
-    if (type === 'Class') data = definitions.classes;
-    else if (type === 'Teacher') data = definitions.teachers;
-    else if (type === 'Room') data = definitions.rooms;
+    if (selectedType === 'Class') data = definitions.classes;
+    else if (selectedType === 'Teacher') data = definitions.teachers;
+    else if (selectedType === 'Room') data = definitions.rooms;
 
     valueSelect.innerHTML = '';
     
@@ -106,13 +159,12 @@ function populateValueSelect() {
 
 // 3. Načtení a vykreslení rozvrhu
 async function loadTimetable() {
-    const type = typeSelect.value;
     const id = valueSelect.value;
 
     if (!id) return;
 
     // Uložit do paměti pro příště
-    localStorage.setItem('selectedType', type);
+    localStorage.setItem('selectedType', selectedType);
     localStorage.setItem('selectedValue', id);
 
     loading.classList.remove('hidden');
@@ -120,7 +172,7 @@ async function loadTimetable() {
     timetableGrid.innerHTML = '';
 
     try {
-        const res = await fetch(`/api/timetable?type=${type}&id=${id}`);
+        const res = await fetch(`/api/timetable?type=${selectedType}&id=${id}`);
         if (!res.ok) throw new Error("Chyba serveru");
 
         const data = await res.json();
@@ -290,12 +342,8 @@ function showError(msg) {
 }
 
 // Event listenery
-typeSelect.addEventListener('change', () => {
-    populateValueSelect();
-    loadTimetable();
-});
-
 valueSelect.addEventListener('change', loadTimetable);
 
 // Start!
+initTheme();
 init();

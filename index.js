@@ -3,6 +3,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const cors = require('cors');
 const path = require('path'); // <--- DŮLEŽITÉ: Toto musí být nahoře
+const os = require('os'); // Pro získání IP adresy
 
 const app = express();
 app.use(cors());
@@ -77,7 +78,25 @@ app.get('/api/definitions', async (req, res) => {
     }
 });
 
+// Funkce pro získání lokální IP adresy
+function getLocalIP() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            // Přeskočit interní (localhost) a non-IPv4 adresy
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'IP nenalezena';
+}
+
 const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`🤖 Web běží na http://localhost:${PORT}`);
+const HOST = '0.0.0.0'; // Naslouchá na všech síťových rozhraních
+app.listen(PORT, HOST, () => {
+    const localIP = getLocalIP();
+    console.log(`🤖 Web běží na:`);
+    console.log(`   - Lokálně: http://localhost:${PORT}`);
+    console.log(`   - V síti:  http://${localIP}:${PORT}`);
 });

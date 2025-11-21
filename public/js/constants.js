@@ -35,6 +35,8 @@ export const subjectAbbreviations = {
     'Fyzika': 'FYZ',
     'Chemie': 'CHE',
     'Biologie': 'BIO',
+    'Biologie, ekologie a chemie': 'BECH',
+    'Ekologie a chemie': 'ECH',
     'Zeměpis': 'ZEM',
 
     // Odborné předměty
@@ -47,6 +49,8 @@ export const subjectAbbreviations = {
     'Technologie': 'TCH',
     'Strojnictví': 'STR',
     'Konstruování': 'KON',
+    'Logistika a zasilatelství': 'LZ',
+    'Dějiny dopravy': 'DD',
 
     // Ostatní
     'Konverzace v anglickém jazyce': 'Konv. AJ',

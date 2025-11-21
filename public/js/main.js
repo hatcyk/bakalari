@@ -4,7 +4,7 @@ import { initTheme, initThemeToggle } from './theme.js';
 import { initModalListeners } from './modal.js';
 import { loadTimetable, populateValueSelect, createDaySelector } from './timetable.js';
 import { fetchDefinitions } from './api.js';
-import { initCustomDropdown, setDropdownValue, getDropdownValue } from './dropdown.js';
+import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } from './dropdown.js';
 
 // Type button handlers
 function updateTypeButtons() {
@@ -33,7 +33,8 @@ function initTypeButtons() {
             updateState('selectedGroup', 'all');
             dom.groupSelect.classList.add('hidden');
 
-            loadTimetable();
+            // Auto-open dropdown after changing type
+            setTimeout(() => openDropdown(), 100);
         });
     });
 }

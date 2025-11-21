@@ -25,11 +25,13 @@ export function populateValueSelect() {
     // Sort alphabetically
     data.sort((a, b) => a.name.localeCompare(b.name));
 
-    // Convert to dropdown format
-    const items = data.map(item => ({
-        value: item.id,
-        label: item.name
-    }));
+    // Convert to dropdown format and filter out empty values
+    const items = data
+        .filter(item => item.id && item.id.trim() !== '' && item.name && item.name.trim() !== '')
+        .map(item => ({
+            value: item.id,
+            label: item.name
+        }));
 
     // Populate custom dropdown
     populateDropdown(items);

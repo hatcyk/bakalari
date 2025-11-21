@@ -1,115 +1,14 @@
+const typeSelect = document.getElementById('typeSelect');
+const valueSelect = document.getElementById('valueSelect');
 const timetableGrid = document.getElementById('timetable');
 const loading = document.getElementById('loading');
 const errorDiv = document.getElementById('error');
 const daySelector = document.getElementById('daySelector');
-const themeToggle = document.getElementById('themeToggle');
-
-// Type Buttons
-const typeButtons = document.getElementById('typeButtons');
-
-// Value Select (Custom Dropdown)
-const valueSelectWrapper = document.getElementById('valueSelectWrapper');
-const valueTrigger = document.getElementById('valueTrigger');
-const valueOptions = document.getElementById('valueOptions');
 
 // Globální proměnná pro data definic
 let definitions = {};
 let currentTimetableData = [];
 let selectedDayIndex = null;
-let selectedType = 'Class';
-let selectedValue = null;
-
-// Theme Management
-function updateLogo(theme) {
-    const headerLogo = document.getElementById('headerLogo');
-    if (headerLogo) {
-        headerLogo.src = theme === 'dark' ? 'spsd_logo_white.png' : 'spsd_logo.png';
-    }
-}
-
-function initTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    updateLogo(savedTheme);
-}
-
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    updateLogo(newTheme);
-}
-
-// Initialize theme on load
-initTheme();
-
-// Theme toggle event listener
-if (themeToggle) {
-    themeToggle.addEventListener('click', toggleTheme);
-}
-
-// Custom Select Functions
-function toggleSelect(selectWrapper) {
-    const isOpen = selectWrapper.classList.contains('open');
-    // Close all selects
-    document.querySelectorAll('.custom-select').forEach(sel => sel.classList.remove('open'));
-    // Toggle current select
-    if (!isOpen) {
-        selectWrapper.classList.add('open');
-    }
-}
-
-function selectOption(selectWrapper, trigger, optionsContainer, value, text) {
-    // Update trigger text
-    trigger.querySelector('.select-value').textContent = text;
-
-    // Update active state
-    optionsContainer.querySelectorAll('.select-option').forEach(opt => {
-        opt.classList.remove('active');
-        if (opt.dataset.value === value) {
-            opt.classList.add('active');
-        }
-    });
-
-    // Close dropdown
-    selectWrapper.classList.remove('open');
-}
-
-// Type Buttons Event Listener
-typeButtons.addEventListener('click', (e) => {
-    if (e.target.classList.contains('type-btn')) {
-        // Remove active class from all buttons
-        typeButtons.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
-        // Add active class to clicked button
-        e.target.classList.add('active');
-        // Update selected type
-        selectedType = e.target.dataset.value;
-        // Reload value options and timetable
-        populateValueSelect();
-        loadTimetable();
-    }
-});
-
-// Value Select Event Listeners
-valueTrigger.addEventListener('click', () => toggleSelect(valueSelectWrapper));
-
-valueOptions.addEventListener('click', (e) => {
-    if (e.target.classList.contains('select-option')) {
-        const value = e.target.dataset.value;
-        const text = e.target.textContent;
-        selectedValue = value;
-        selectOption(valueSelectWrapper, valueTrigger, valueOptions, value, text);
-        loadTimetable();
-    }
-});
-
-// Close dropdowns when clicking outside
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.custom-select')) {
-        document.querySelectorAll('.custom-select').forEach(sel => sel.classList.remove('open'));
-    }
-});
 
 // Check authentication
 async function checkAuth() {
@@ -202,13 +101,7 @@ async function init() {
             throw new Error('Unauthorized');
         }
         definitions = await res.json();
-        console.log('Definitions loaded:', definitions);
-        if (definitions.debug) {
-            console.log('DEBUG INFO:', JSON.stringify(definitions.debug, null, 2));
-            // Remove debug from definitions
-            delete definitions.debug;
-        }
-
+        
         // Naplnit druhý select podle toho, co je vybráno v prvním
         populateValueSelect();
 
@@ -217,40 +110,16 @@ async function init() {
         const savedValue = localStorage.getItem('selectedValue');
 
         if (savedType && savedValue) {
-            selectedType = savedType;
-            selectedValue = savedValue;
-
-            // Update type buttons
-            typeButtons.querySelectorAll('.type-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.value === savedType) {
-                    btn.classList.add('active');
-                }
-            });
-
-            populateValueSelect();
-
-            // Update value select after population
-            setTimeout(() => {
-                const valueOption = valueOptions.querySelector(`[data-value="${savedValue}"]`);
-                if (valueOption) {
-                    selectOption(valueSelectWrapper, valueTrigger, valueOptions, savedValue, valueOption.textContent);
-                }
-                loadTimetable();
-            }, 100);
+            typeSelect.value = savedType;
+            populateValueSelect(); // Překreslit možnosti
+            valueSelect.value = savedValue;
+            loadTimetable(); // Načíst rozvrh
         } else {
             // Defaultně zkusíme vybrat třídu ZL (4.L) pokud existuje
-            selectedType = 'Class';
+            typeSelect.value = 'Class';
             populateValueSelect();
-
-            setTimeout(() => {
-                selectedValue = 'ZL';
-                const valueOption = valueOptions.querySelector('[data-value="ZL"]');
-                if (valueOption) {
-                    selectOption(valueSelectWrapper, valueTrigger, valueOptions, 'ZL', valueOption.textContent);
-                }
-                loadTimetable();
-            }, 100);
+            valueSelect.value = 'ZL'; 
+            loadTimetable();
         }
 
     } catch (e) {
@@ -260,72 +129,43 @@ async function init() {
 
 // 2. Naplnění selectboxu podle typu
 function populateValueSelect() {
-    console.log('populateValueSelect called', { selectedType, definitions });
+    const type = typeSelect.value; // Class, Teacher, Room
     let data = [];
 
-    if (selectedType === 'Class') data = definitions.classes || [];
-    else if (selectedType === 'Teacher') data = definitions.teachers || [];
-    else if (selectedType === 'Room') data = definitions.rooms || [];
+    if (type === 'Class') data = definitions.classes;
+    else if (type === 'Teacher') data = definitions.teachers;
+    else if (type === 'Room') data = definitions.rooms;
 
-    console.log('Data for populate:', data);
-
-    valueOptions.innerHTML = '';
-
-    if (!data || data.length === 0) {
-        console.log('No data to populate');
-        const selectValue = valueTrigger.querySelector('.select-value');
-        if (selectValue) {
-            selectValue.textContent = '-- Žádná data --';
-            selectValue.style.opacity = '0.6';
-            selectValue.style.fontStyle = 'italic';
-        }
-        selectedValue = null;
-        return;
-    }
-
+    valueSelect.innerHTML = '';
+    
     // Seřadíme abecedně
     data.sort((a, b) => a.name.localeCompare(b.name));
 
-    data.forEach((item, index) => {
-        const opt = document.createElement('div');
-        opt.className = 'select-option';
-        if (index === 0) {
-            opt.classList.add('active');
-        }
-        opt.dataset.value = item.id;
+    data.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
         opt.textContent = item.name;
-        valueOptions.appendChild(opt);
+        valueSelect.appendChild(opt);
     });
-
-    // Reset trigger text and selected value
-    if (data.length > 0) {
-        valueTrigger.querySelector('.select-value').textContent = data[0].name;
-        selectedValue = data[0].id;
-    } else {
-        valueTrigger.querySelector('.select-value').textContent = 'Vyberte...';
-        selectedValue = null;
-    }
 }
 
 // 3. Načtení a vykreslení rozvrhu
 async function loadTimetable() {
-    console.log('loadTimetable called', { selectedType, selectedValue });
+    const type = typeSelect.value;
+    const id = valueSelect.value;
 
-    if (!selectedValue) {
-        console.log('No selectedValue, returning');
-        return;
-    }
+    if (!id) return;
 
     // Uložit do paměti pro příště
-    localStorage.setItem('selectedType', selectedType);
-    localStorage.setItem('selectedValue', selectedValue);
+    localStorage.setItem('selectedType', type);
+    localStorage.setItem('selectedValue', id);
 
     loading.classList.remove('hidden');
     errorDiv.classList.add('hidden');
     timetableGrid.innerHTML = '';
 
     try {
-        const res = await fetch(`/api/timetable?type=${selectedType}&id=${selectedValue}`);
+        const res = await fetch(`/api/timetable?type=${type}&id=${id}`);
         if (!res.ok) throw new Error("Chyba serveru");
 
         const data = await res.json();
@@ -378,79 +218,79 @@ function selectDay(index) {
 
 // Aktualizace viditelnosti dnů na mobilu
 function updateMobileDayView() {
-    // V gridu máme: 1 corner cell + 12 header cells = 13 cells v první řadě
-    // Pak pro každý den: 1 day cell + 12 lesson cells = 13 cells per row
-
-    const allCells = timetableGrid.children;
-    const headerCount = 13; // corner + 12 hour headers
-
-    // Projdeme každý den (5 dnů)
-    for (let day = 0; day < 5; day++) {
-        const startIdx = headerCount + (day * 13); // day cell + 12 lessons
-        const endIdx = startIdx + 13; // 1 day cell + 12 lesson cells
-
-        for (let i = startIdx; i < endIdx && i < allCells.length; i++) {
-            if (day === selectedDayIndex) {
-                allCells[i].classList.add('active');
-            } else {
-                allCells[i].classList.remove('active');
-            }
+    // Na mobilu zobrazit pouze vybraný den (řádek)
+    const rows = document.querySelectorAll('.timetable-row');
+    rows.forEach((row, index) => {
+        if (index === selectedDayIndex) {
+            row.classList.add('active');
+        } else {
+            row.classList.remove('active');
         }
-    }
+    });
 }
 
-// 4. Vykreslení HTML - Pevný grid 12 hodin × 5 dnů
+// 4. Vykreslení HTML
 function renderTimetable(data) {
-    console.log('renderTimetable called with data:', data);
     const days = ['Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek'];
     const todayIndex = getTodayIndex();
     const currentHour = getCurrentHour();
+
+    // Zjistíme všechny hodiny, které se vyskytují v rozvrhu
+    const allHours = [...new Set(data.map(d => d.hour))].sort((a, b) => a - b);
+    const maxHour = Math.max(...allHours, 0);
+
+    // Vytvoříme hlavičku tabulky s hodinami
+    const headerRow = document.createElement('div');
+    headerRow.className = 'timetable-header';
 
     // První buňka - prázdná (roh)
     const cornerCell = document.createElement('div');
     cornerCell.className = 'timetable-header-cell';
     cornerCell.textContent = '';
-    timetableGrid.appendChild(cornerCell);
+    headerRow.appendChild(cornerCell);
 
-    // Hlavičky pro hodiny 0-11
-    for (let hour = 0; hour < 12; hour++) {
+    // Hlavičky pro hodiny
+    for (let hour = 0; hour <= maxHour; hour++) {
         const headerCell = document.createElement('div');
         headerCell.className = 'timetable-header-cell';
 
         const timeInfo = lessonTimes.find(t => t.hour === hour);
         headerCell.innerHTML = `
-            <div style="font-size: 0.9rem; font-weight: 700;">${hour}.</div>
-            <div style="font-size: 0.7rem; font-weight: 400; margin-top: 4px; opacity: 0.7;">${timeInfo ? timeInfo.label : ''}</div>
+            <div style="font-size: 0.85rem;">${hour}.</div>
+            <div style="font-size: 0.65rem; font-weight: 400; margin-top: 2px; opacity: 0.8;">${timeInfo ? timeInfo.label : ''}</div>
         `;
 
-        timetableGrid.appendChild(headerCell);
+        headerRow.appendChild(headerCell);
     }
 
-    // Vytvoříme buňky pro každý den (5 dnů)
+    timetableGrid.appendChild(headerRow);
+
+    // Vytvoříme řádky pro každý den
     days.forEach((day, dayIndex) => {
-        // První buňka řádku - název dne
-        const dayCell = document.createElement('div');
-        dayCell.className = 'day-cell';
+        const row = document.createElement('div');
+        row.className = 'timetable-row';
+
+        // Zvýraznění dnešního řádku
         if (dayIndex === todayIndex) {
-            dayCell.classList.add('today');
+            row.classList.add('today-row');
         }
+
+        // První buňka - název dne
+        const dayCell = document.createElement('div');
+        dayCell.className = 'hour-cell';
         dayCell.innerHTML = `
             <div style="font-weight: 700;">${day}</div>
             ${dayIndex === todayIndex ? '<div class="today-badge" style="margin-top: 4px;">DNES</div>' : ''}
         `;
-        timetableGrid.appendChild(dayCell);
+        row.appendChild(dayCell);
 
-        // Buňky pro jednotlivé hodiny (12 hodin)
-        for (let hour = 0; hour < 12; hour++) {
+        // Buňky pro jednotlivé hodiny
+        for (let hour = 0; hour <= maxHour; hour++) {
             const lessonCell = document.createElement('div');
             lessonCell.className = 'lesson-cell';
 
             if (dayIndex === todayIndex) {
                 lessonCell.classList.add('today');
-            }
-
-            if (dayIndex === todayIndex && hour === currentHour) {
-                lessonCell.classList.add('current-hour');
             }
 
             // Najdeme všechny hodiny pro tento den a hodinu
@@ -460,6 +300,11 @@ function renderTimetable(data) {
                 const card = document.createElement('div');
                 let cardClass = 'lesson-card';
                 if (lesson.changed) cardClass += ' changed';
+
+                // Zvýraznění aktuální hodiny
+                if (dayIndex === todayIndex && hour === currentHour) {
+                    cardClass += ' current-time';
+                }
                 card.className = cardClass;
 
                 card.innerHTML = `
@@ -473,8 +318,10 @@ function renderTimetable(data) {
                 lessonCell.appendChild(card);
             });
 
-            timetableGrid.appendChild(lessonCell);
+            row.appendChild(lessonCell);
         }
+
+        timetableGrid.appendChild(row);
     });
 
     // Aktualizovat viditelnost dnů na mobilu
@@ -486,6 +333,14 @@ function showError(msg) {
     errorDiv.classList.remove('hidden');
     loading.classList.add('hidden');
 }
+
+// Event listenery
+typeSelect.addEventListener('change', () => {
+    populateValueSelect();
+    loadTimetable();
+});
+
+valueSelect.addEventListener('change', loadTimetable);
 
 // Start!
 init();

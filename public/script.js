@@ -1,5 +1,7 @@
 const typeButtons = document.querySelectorAll('.type-btn');
+const scheduleTypeButtons = document.querySelectorAll('.schedule-type-btn');
 const valueSelect = document.getElementById('valueSelect');
+const groupSelect = document.getElementById('groupSelect');
 const timetableGrid = document.getElementById('timetable');
 const loading = document.getElementById('loading');
 const errorDiv = document.getElementById('error');
@@ -11,6 +13,8 @@ let definitions = {};
 let currentTimetableData = [];
 let selectedDayIndex = null;
 let selectedType = 'Class'; // Default type
+let selectedScheduleType = 'actual'; // Default schedule type
+let selectedGroup = 'all'; // Default group (all)
 
 // Theme management
 function initTheme() {
@@ -58,8 +62,41 @@ typeButtons.forEach(btn => {
         selectedType = btn.dataset.type;
         updateTypeButtons();
         populateValueSelect();
+
+        // Show/hide group selector based on type
+        if (selectedType === 'Class') {
+            groupSelect.classList.remove('hidden');
+        } else {
+            groupSelect.classList.add('hidden');
+        }
+
         loadTimetable();
     });
+});
+
+// Schedule type button handlers (Stálý/Aktuální)
+function updateScheduleTypeButtons() {
+    scheduleTypeButtons.forEach(btn => {
+        if (btn.dataset.schedule === selectedScheduleType) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
+
+scheduleTypeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        selectedScheduleType = btn.dataset.schedule;
+        updateScheduleTypeButtons();
+        loadTimetable();
+    });
+});
+
+// Group selector handler
+groupSelect.addEventListener('change', () => {
+    selectedGroup = groupSelect.value;
+    renderTimetable(currentTimetableData);
 });
 
 // Utility funkce pro získání dnešního dne (0-4 = Po-Pá)
@@ -172,7 +209,7 @@ async function loadTimetable() {
     timetableGrid.innerHTML = '';
 
     try {
-        const res = await fetch(`/api/timetable?type=${selectedType}&id=${id}`);
+        const res = await fetch(`/api/timetable?type=${selectedType}&id=${id}&schedule=${selectedScheduleType}`);
         if (!res.ok) throw new Error("Chyba serveru");
 
         const data = await res.json();
@@ -182,6 +219,7 @@ async function loadTimetable() {
         }
 
         currentTimetableData = data;
+        populateGroupSelector(data);
         createDaySelector();
         renderTimetable(data);
 
@@ -189,6 +227,45 @@ async function loadTimetable() {
         showError(e.message);
     } finally {
         loading.classList.add('hidden');
+    }
+}
+
+// Populate group selector from timetable data
+function populateGroupSelector(data) {
+    // Extract unique groups from the data
+    const groups = new Set();
+    data.forEach(lesson => {
+        if (lesson.group) {
+            groups.add(lesson.group);
+        }
+    });
+
+    // If there are groups, show the selector
+    if (groups.size > 0 && selectedType === 'Class') {
+        groupSelect.classList.remove('hidden');
+
+        // Clear and repopulate
+        groupSelect.innerHTML = '<option value="all">Celá třída</option>';
+
+        // Sort groups
+        const sortedGroups = Array.from(groups).sort();
+        sortedGroups.forEach(group => {
+            const opt = document.createElement('option');
+            opt.value = group;
+            opt.textContent = group;
+            groupSelect.appendChild(opt);
+        });
+
+        // Restore selected group if it exists
+        if (sortedGroups.includes(selectedGroup)) {
+            groupSelect.value = selectedGroup;
+        } else {
+            selectedGroup = 'all';
+            groupSelect.value = 'all';
+        }
+    } else {
+        groupSelect.classList.add('hidden');
+        selectedGroup = 'all';
     }
 }
 
@@ -301,7 +378,12 @@ function renderTimetable(data) {
             }
 
             // Najdeme všechny hodiny pro tento den a hodinu
-            const lessons = data.filter(d => d.day === dayIndex && d.hour === hour);
+            let lessons = data.filter(d => d.day === dayIndex && d.hour === hour);
+
+            // Filter by selected group
+            if (selectedGroup !== 'all') {
+                lessons = lessons.filter(d => d.group === selectedGroup || !d.group);
+            }
 
             lessons.forEach(lesson => {
                 const card = document.createElement('div');

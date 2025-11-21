@@ -8,6 +8,16 @@ const os = require('os'); // Pro získání IP adresy
 const app = express();
 app.use(cors());
 
+// Set proper MIME types for JavaScript modules
+app.use((req, res, next) => {
+    if (req.url.endsWith('.js')) {
+        res.type('application/javascript');
+    } else if (req.url.endsWith('.css')) {
+        res.type('text/css');
+    }
+    next();
+});
+
 // ==================================================================
 // DŮLEŽITÉ: TENTO ŘÁDEK ŘÍKÁ SERVERU "UKAŽ OBSAH SLOŽKY PUBLIC"
 // ==================================================================
@@ -25,10 +35,17 @@ const headers = {
 
 // === API ENDPOINTY ===
 app.get('/api/timetable', async (req, res) => {
-    const { type, id, schedule } = req.query;
+    const { type, id, schedule, date } = req.query;
     // Schedule can be 'actual' (default) or 'permanent'
     const scheduleType = schedule === 'permanent' ? 'Permanent' : 'Actual';
-    const url = `${BASE_URL_TEMPLATE}/${scheduleType}/${type}/${id}`;
+
+    // Build URL with optional date parameter
+    let url = `${BASE_URL_TEMPLATE}/${scheduleType}/${type}/${id}`;
+    if (date) {
+        url += `?date=${date}`;
+    }
+
+    console.log(`[API] Fetching timetable: ${url}`);
     try {
         const response = await axios.get(url, { headers });
         const $ = cheerio.load(response.data);
@@ -43,6 +60,16 @@ app.get('/api/timetable', async (req, res) => {
                     if (detailRaw) {
                         try {
                             const data = JSON.parse(detailRaw);
+
+                            // Parse change info if exists
+                            let changeInfo = null;
+                            if (data.changeinfo) {
+                                changeInfo = {
+                                    raw: data.changeinfo,
+                                    description: data.changeinfo
+                                };
+                            }
+
                             timetable.push({
                                 day: dayIndex,
                                 dayName: dayName,
@@ -53,7 +80,8 @@ app.get('/api/timetable', async (req, res) => {
                                 group: data.group,
                                 theme: data.theme,
                                 type: data.type,
-                                changed: !!data.changeinfo
+                                changed: !!data.changeinfo,
+                                changeInfo: changeInfo
                             });
                         } catch (e) {}
                     }

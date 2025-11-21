@@ -1,20 +1,19 @@
-// Theme management module
+import { dom } from './dom.js';
 
-const themeToggle = document.getElementById('themeToggle');
-
-// Initialize theme
+// Theme management
 export function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setTheme(savedTheme);
 }
 
-// Set theme
 export function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
 
-    const sunIcon = themeToggle.querySelector('.sun-icon');
-    const moonIcon = themeToggle.querySelector('.moon-icon');
+    if (!dom.themeToggle) return;
+
+    const sunIcon = dom.themeToggle.querySelector('.sun-icon');
+    const moonIcon = dom.themeToggle.querySelector('.moon-icon');
 
     if (theme === 'light') {
         sunIcon.style.display = 'none';
@@ -25,14 +24,14 @@ export function setTheme(theme) {
     }
 }
 
-// Toggle theme
 export function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
 }
 
-// Setup theme toggle event listener
-export function setupThemeToggle() {
-    themeToggle.addEventListener('click', toggleTheme);
+export function initThemeToggle() {
+    if (dom.themeToggle) {
+        dom.themeToggle.addEventListener('click', toggleTheme);
+    }
 }

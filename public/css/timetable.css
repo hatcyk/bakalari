@@ -1,0 +1,226 @@
+.timetable-container {
+    overflow-x: auto;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 12px var(--shadow);
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) var(--border);
+}
+
+.timetable-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.timetable-container::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.timetable-container::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+.timetable-container::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-hover);
+}
+
+.timetable-grid {
+    display: table;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.timetable-header {
+    display: table-row;
+    background: var(--header-bg);
+}
+
+.timetable-header-cell {
+    display: table-cell;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 16px 12px;
+    border-bottom: 2px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: sticky;
+    top: 0;
+    background: var(--header-bg);
+    z-index: 10;
+    transition: all 0.2s ease;
+}
+
+.timetable-header-cell:hover {
+    background: var(--sidebar-accent);
+}
+
+.timetable-header-cell:first-child {
+    width: 60px;
+    border-right: 2px solid var(--border);
+}
+
+.timetable-header-cell.today {
+    color: var(--today-highlight);
+    border-bottom: 3px solid var(--today-highlight);
+    background: var(--accent-light);
+    font-weight: 800;
+}
+
+.day-name-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--text-main);
+}
+
+.today-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    background: var(--today-highlight);
+    color: white;
+    font-size: 0.7rem;
+    border-radius: 6px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(235, 93, 67, 0.4);
+    white-space: nowrap;
+}
+
+.timetable-row {
+    display: table-row;
+    height: 120px;
+}
+
+.timetable-row.today-row {
+    background: linear-gradient(90deg, var(--accent-light) 0%, transparent 50%);
+}
+
+.hour-cell {
+    display: table-cell;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--spsd-orange);
+    padding: 12px 8px;
+    border-right: 2px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--header-bg);
+    vertical-align: middle;
+    width: 60px;
+}
+
+.lesson-cell {
+    display: table-cell;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    vertical-align: top;
+    min-width: 160px;
+    height: 120px;
+}
+
+.lesson-cell:empty {
+    background: var(--empty-cell-bg);
+    position: relative;
+}
+
+.lesson-cell:empty::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    opacity: 0.1;
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%2364A8FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.lesson-cell:last-child {
+    border-right: none;
+}
+
+/* Multiple lessons in one cell (group division) */
+.lesson-cell > .lesson-card + .lesson-card {
+    margin-top: 12px;
+    position: relative;
+}
+
+.lesson-cell > .lesson-card + .lesson-card::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--border-light) 50%, transparent 100%);
+}
+
+/* Empty day message */
+.empty-day-message {
+    display: table-cell;
+    padding: 20px;
+    text-align: center;
+    vertical-align: middle;
+    background: var(--accent-light);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.empty-day-message svg {
+    display: block;
+    margin: 0 auto 8px;
+    opacity: 0.5;
+}
+
+.empty-day-message span {
+    display: block;
+}
+
+/* DAY SELECTOR (MOBILE) */
+.day-selector {
+    display: none;
+    margin-bottom: 16px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.day-selector button {
+    flex: 1;
+    min-width: 60px;
+    padding: 10px 16px;
+    background: var(--card-bg);
+    color: var(--text-main);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.day-selector button:hover {
+    border-color: var(--accent);
+}
+
+.day-selector button.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.day-selector button.today-btn {
+    border-color: var(--today-highlight);
+}

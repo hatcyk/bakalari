@@ -1,6 +1,5 @@
-// API module for fetching data from the backend
+// API functions
 
-// Fetch definitions (classes, teachers, rooms)
 export async function fetchDefinitions() {
     try {
         const res = await fetch('/api/definitions');
@@ -11,10 +10,14 @@ export async function fetchDefinitions() {
     }
 }
 
-// Fetch timetable data
-export async function fetchTimetable(type, id, scheduleType = 'actual') {
+export async function fetchTimetable(type, id, scheduleType, date) {
     try {
-        const res = await fetch(`/api/timetable?type=${type}&id=${id}&schedule=${scheduleType}`);
+        let url = `/api/timetable?type=${type}&id=${id}&schedule=${scheduleType}`;
+        if (date) {
+            url += `&date=${date}`;
+        }
+
+        const res = await fetch(url);
         if (!res.ok) throw new Error("Chyba serveru");
 
         const data = await res.json();

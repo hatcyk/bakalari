@@ -124,6 +124,11 @@
     height: 120px;
 }
 
+/* Center single lesson card when there's only one */
+.lesson-cell:has(.lesson-card:only-child) {
+    vertical-align: middle;
+}
+
 .lesson-cell:empty {
     background: var(--empty-cell-bg);
     position: relative;
@@ -166,20 +171,24 @@
 /* Empty day message */
 .empty-day-message {
     display: table-cell;
-    padding: 20px;
+    padding: 30px 20px;
     text-align: center;
     vertical-align: middle;
     background: var(--accent-light);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid var(--border);
-    color: var(--text-dim);
-    font-size: 0.95rem;
-    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    color: var(--text-main);
+    font-size: 1.1rem;
+    font-weight: 700;
 }
 
 .empty-day-message svg {
     display: block;
-    margin: 0 auto 8px;
-    opacity: 0.5;
+    margin: 0 auto 12px;
+    opacity: 0.6;
+    width: 32px;
+    height: 32px;
 }
 
 .empty-day-message span {

@@ -280,6 +280,7 @@ h1 {
     transition: all 0.15s ease;
     color: var(--text-main);
     font-size: 0.95rem;
+    text-align: center;
 }
 
 .custom-dropdown-option:hover {

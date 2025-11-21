@@ -17,11 +17,13 @@ export function showLessonModal(lesson) {
 
     // Set teacher (full name) with clickable link
     const teacherEl = document.getElementById('modalTeacher');
+    console.log('Lesson teacher data:', lesson.teacher, 'Selected type:', state.selectedType);
     if (lesson.teacher && state.selectedType !== 'Teacher') {
         teacherEl.innerHTML = `<a href="#" class="modal-link" data-type="Teacher" data-name="${lesson.teacher}">${lesson.teacher}</a>`;
     } else {
         teacherEl.textContent = lesson.teacher || 'Není zadáno';
     }
+
 
     // Set room (with clickable link if room exists)
     const roomEl = document.getElementById('modalRoom');
@@ -112,6 +114,20 @@ export function closeLessonModal() {
     }
 }
 
+// Helper function to normalize teacher names for matching
+function normalizeTeacherName(name) {
+    if (!name) return '';
+
+    // Remove titles
+    let normalized = name.replace(/^(Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.)\s*/gi, '')
+        .replace(/,?\s*(Ph\.D\.|CSc\.)$/gi, '')
+        .trim();
+
+    // Split into parts and sort alphabetically to handle different orders
+    const parts = normalized.split(/\s+/).filter(p => p.length > 0);
+    return parts.sort().join(' ').toLowerCase();
+}
+
 // Setup click listeners for modal links (teacher, room, class)
 function setupModalLinks() {
     const links = dom.lessonModal.querySelectorAll('.modal-link');
@@ -129,8 +145,43 @@ function setupModalLinks() {
             let targetId = null;
 
             if (type === 'Teacher') {
-                const teacher = definitions.teachers?.find(t => t.name === name);
+                // Normalize the search name
+                const normalizedSearchName = normalizeTeacherName(name);
+
+                // Try exact match first
+                let teacher = definitions.teachers?.find(t => t.name === name);
+
+                // If no exact match, try normalized name matching
+                if (!teacher) {
+                    teacher = definitions.teachers?.find(t => {
+                        const normalizedDefName = normalizeTeacherName(t.name);
+                        return normalizedDefName === normalizedSearchName;
+                    });
+                }
+
+                // If still no match, try to find by ID
+                if (!teacher) {
+                    teacher = definitions.teachers?.find(t => t.id === name);
+                }
+
+                // Last resort: partial matching
+                if (!teacher) {
+                    teacher = definitions.teachers?.find(t =>
+                        t.name.includes(name) || name.includes(t.name) || t.id.includes(name)
+                    );
+                }
+
                 targetId = teacher?.id;
+                console.log('Teacher lookup:', {
+                    name,
+                    normalizedSearchName,
+                    teacher,
+                    targetId,
+                    sampleTeachers: definitions.teachers?.slice(0, 3).map(t => ({
+                        ...t,
+                        normalized: normalizeTeacherName(t.name)
+                    }))
+                });
             } else if (type === 'Room') {
                 const room = definitions.rooms?.find(r => r.name === name);
                 targetId = room?.id;
@@ -138,6 +189,7 @@ function setupModalLinks() {
                 const cls = definitions.classes?.find(c => c.name === name);
                 targetId = cls?.id;
             }
+
 
             if (targetId) {
                 // Update state
@@ -159,6 +211,13 @@ function setupModalLinks() {
 
                 // Load timetable
                 await loadTimetable();
+            } else {
+                console.error(`Failed to find ${type} with name: "${name}"`);
+                console.error('Available options:', type === 'Teacher' ? definitions.teachers :
+                    type === 'Room' ? definitions.rooms : definitions.classes);
+
+                // Show user-friendly error
+                alert(`Nepodařilo se najít rozvrh pro ${type === 'Teacher' ? 'učitele' : type === 'Room' ? 'učebnu' : 'třídu'}: "${name}"\n\nKlikněte na tlačítko Console (F12) pro více informací.`);
             }
         });
     });

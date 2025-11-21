@@ -83,7 +83,7 @@ app.get('/api/timetable', async (req, res) => {
                                 changed: !!data.changeinfo,
                                 changeInfo: changeInfo
                             });
-                        } catch (e) {}
+                        } catch (e) { }
                     }
                 });
             });
@@ -99,9 +99,40 @@ app.get('/api/definitions', async (req, res) => {
         const response = await axios.get(`${BASE_URL_TEMPLATE}/Actual/Class/ZL`, { headers });
         const $ = cheerio.load(response.data);
         const data = { classes: [], teachers: [], rooms: [] };
-        $('#selectedClass option').each((_, el) => data.classes.push({ id: $(el).val(), name: $(el).text().trim() }));
-        $('#selectedTeacher option').each((_, el) => data.teachers.push({ id: $(el).val(), name: $(el).text().trim() }));
-        $('#selectedRoom option').each((_, el) => data.rooms.push({ id: $(el).val(), name: $(el).text().trim() }));
+
+        // Classes
+        $('#selectedClass option').each((_, el) => {
+            const id = $(el).val();
+            const name = $(el).text().trim();
+            if (id && name) {
+                data.classes.push({ id, name });
+            }
+        });
+
+        // Teachers - use name as ID if value is empty
+        $('#selectedTeacher option').each((_, el) => {
+            let id = $(el).val();
+            const name = $(el).text().trim();
+
+            // If ID is empty but name exists, use name as ID
+            if ((!id || id.trim() === '') && name) {
+                id = name;
+            }
+
+            if (id && name) {
+                data.teachers.push({ id, name });
+            }
+        });
+
+        // Rooms
+        $('#selectedRoom option').each((_, el) => {
+            const id = $(el).val();
+            const name = $(el).text().trim();
+            if (id && name) {
+                data.rooms.push({ id, name });
+            }
+        });
+
         res.json(data);
     } catch (e) {
         res.status(500).json({ error: e.message });

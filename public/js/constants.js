@@ -8,6 +8,7 @@ export const subjectAbbreviations = {
     'Hardware': 'HW',
     'Kybernetická bezpečnost': 'KBS',
     'Datové sítě': 'DTS',
+    'Počítačové sítě a síťová zařízení': 'PSZ',
     'Grafická tvorba': 'GTV',
     'CAD systémy': 'CAD',
     'Webové aplikace': 'WA',
@@ -17,9 +18,11 @@ export const subjectAbbreviations = {
     'Elektrická měření': 'EM',
     'Elektronika': 'ELN',
     'Elektrotechnika': 'ELT',
+    'Základy Elektrotechniky': 'ZEL',
     'Automatizace': 'AUT',
     'Mikroprocesorová technika': 'MPT',
     'Digitální technika': 'DT',
+    'Číslicová technika': 'ČT',
 
     // Základní předměty
     'Tělesná výchova': 'TV',
@@ -36,9 +39,11 @@ export const subjectAbbreviations = {
 
     // Odborné předměty
     'Ekonomika': 'EKO',
+    'Ekonomika a finance': 'EF',
     'Účetnictví': 'ÚČE',
     'Praxe': 'PRX',
     'Technické kreslení': 'TK',
+    'Technická dokumentace': 'TD',
     'Technologie': 'TCH',
     'Strojnictví': 'STR',
     'Konstruování': 'KON',

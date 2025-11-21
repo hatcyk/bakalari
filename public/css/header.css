@@ -72,7 +72,7 @@ h1 {
 /* Schedule Type Selector (Stálý/Aktuální) */
 .schedule-type-selector {
     display: flex;
-    gap: 0;
+    gap: 4px;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -105,7 +105,7 @@ h1 {
 
 .type-selector {
     display: flex;
-    gap: 0;
+    gap: 4px;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -166,7 +166,7 @@ h1 {
 /* Group Selector */
 .group-selector {
     display: flex;
-    gap: 0;
+    gap: 4px;
     background: var(--card-bg);
     border: 2px solid var(--spsd-orange);
     border-radius: 10px;

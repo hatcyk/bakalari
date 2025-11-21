@@ -10,6 +10,42 @@ let definitions = {};
 let currentTimetableData = [];
 let selectedDayIndex = null;
 
+// Check authentication
+async function checkAuth() {
+    try {
+        const response = await fetch('/api/auth/check');
+        if (!response.ok) {
+            // Not authenticated, redirect to login
+            window.location.href = '/login.html';
+            return false;
+        }
+        const data = await response.json();
+        updateUserInfo(data.username);
+        return true;
+    } catch (error) {
+        window.location.href = '/login.html';
+        return false;
+    }
+}
+
+// Update user info in header
+function updateUserInfo(username) {
+    const userInfo = document.getElementById('userInfo');
+    if (userInfo) {
+        userInfo.textContent = username;
+    }
+}
+
+// Logout function
+async function logout() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login.html';
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+}
+
 // Utility funkce pro získání dnešního dne (0-4 = Po-Pá)
 function getTodayIndex() {
     const day = new Date().getDay(); // 0=Neděle, 1=Po, ..., 5=Pá
@@ -52,9 +88,18 @@ function getCurrentHour() {
 
 // 1. Start aplikace
 async function init() {
+    // Check authentication first
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+        return;
+    }
+
     try {
         // Načíst seznamy tříd/učitelů
         const res = await fetch('/api/definitions');
+        if (!res.ok) {
+            throw new Error('Unauthorized');
+        }
         definitions = await res.json();
         
         // Naplnit druhý select podle toho, co je vybráno v prvním

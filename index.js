@@ -2,10 +2,53 @@ const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const cors = require('cors');
-const path = require('path'); // <--- DŮLEŽITÉ: Toto musí být nahoře
+const path = require('path');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true
+}));
+app.use(express.json());
+app.use(cookieParser());
+
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+    }
+}));
+
+// Vercel KV setup (will be initialized when deployed to Vercel)
+let kv;
+const hasVercelKV = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+
+if (hasVercelKV) {
+    // Use Vercel KV in production
+    const { kv: vercelKV } = require('@vercel/kv');
+    kv = vercelKV;
+    console.log('✅ Using Vercel KV storage');
+} else {
+    // Fallback to in-memory storage for local development
+    const inMemoryStore = new Map();
+    kv = {
+        get: async (key) => inMemoryStore.get(key),
+        set: async (key, value) => {
+            inMemoryStore.set(key, value);
+            return value;
+        },
+        del: async (key) => inMemoryStore.delete(key)
+    };
+    console.log('⚠️  Using in-memory storage (Vercel KV not available)');
+}
 
 // ==================================================================
 // DŮLEŽITÉ: TENTO ŘÁDEK ŘÍKÁ SERVERU "UKAŽ OBSAH SLOŽKY PUBLIC"
@@ -13,20 +56,116 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-// === TVOJE COOKIE ===
-const MOJE_COOKIE = process.env.BAKALARI_COOKIE || 'cookieconsent_bak={"level":["necessary","analytics"],"revision":0,"data":null,"rfc_cookie":false}; BakaAuth=CfDJ8Gtu_52PsAtKgtiJkbpNCpbTs4iEuWwdylRC2BLRwS_ZuoB_j8LvZ21cbkFF1WfBoTa6WWb1oXVKTw49fAPji4DbBeW-GFMAIl0uC5wXnGUlDzRwedIDKL2lRv6Ad2zmab4uEgzdsHMs7jxBZIrkX5LN1wmERWXchqhhIynQm2n4iR1IQznkTYABGLmqVkkPp06R4SnsyNz61SPgfO-lyD8gH2UWNvkcSthyMQdXLCV8PttNTyL53b8NTwUgBQst_Q_-Alx4v40r5bW7UmHQ4S237Y3QT151GjqRPD-h9vBDb5FynZW209r_ZJOT9G1zVbAGS9YxeJu4LGbkq2rgTSMzO8U95zR3812Axwa4dC--PpoLZbVOU4CsFN6aUEVJJF8gmvYdeTNIzayx3II0wQZhcCj3FJgdWoV1OF9epBpGTrHwDFuxxsJLV8N3PxIoH1xiAi-giup0Ii0xdKuLAG3bIdkx_cWyKjkx9iFp_m3zAikg-aCQwNjFd2emAkennvFxTj3SZODfaUgbfXuVAaaEXz646DSgZq8T1Z3aV471SM29OUGsu3fG3lLr72--saiNSrEI2D5uMGMdWbQEuRG2F0l6SjfUsB8aIHOmdY9e648bxKdtqsUznaRVhWeMdrCd6U7rz-YulUlITcLnkbTLLNzWX9S42RnOXQzQvr8LdAXJ5GtLL7FnX_4ZGEWH922rzxyKLfV-kihhHU46fJogAiJy_wqgTu0Ilt4nqnf3grNfAiWy8GA8mcEXCIseTCI3EYzaBitbBSrpiRSSRGT5J4_a_cmaTTK0Mq8CQju6ipyp6zEfOjFuMofayppiG6KtyeDiMN0yOpsFxYKhVc7mOud3RDbR23urLXWNuR50hwd9sIhV1OxLSCrK2-mHX8rjME8AzaJtm4QD4xTJC-DW-AVKUrbQLcPeQxKmv0R8tP8wg61FCwDXT30RuFb-gxJp7gigx_k8_en15edcNko8P2urWrCSrGr1EZDp_Zce9d7YJZEuMHVFleTybW1jn3DuKeuvU7l7YipbcrwZL2Kunl1vHVsnmZOFVMyxIx2kR5ymgK4xWqRRShHH4Q7EOMVt6Bp0MtyeZRuQTwyWR3vwADd6UmAMHt28REuDWI1PcpY7Ghq01DQcP60JDYy-oA; BakaAuth_ValidationCheck=gnompnhgcbpdjehgmbfbmgedghhahcolkdffohlnmfjenoafjdjpnojl; ASP.NET_SessionId=cjfoq31v2bhgwvsa4blftfsv';
-
-const BASE_URL = 'https://mot-spsd.bakalari.cz/Timetable/Public/Actual';
-const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Cookie': MOJE_COOKIE
+// Auth middleware
+const requireAuth = (req, res, next) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ error: 'Nepřihlášen' });
+    }
+    next();
 };
 
-// === API ENDPOINTY ===
-app.get('/api/timetable', async (req, res) => {
-    const { type, id } = req.query; 
-    const url = `${BASE_URL}/${type}/${id}`;
+const BASE_URL = 'https://mot-spsd.bakalari.cz/Timetable/Public/Actual';
+const BAKALARI_LOGIN_URL = 'https://mot-spsd.bakalari.cz/api/login';
+
+// Helper function to get user's cookie from KV
+async function getUserCookie(userId) {
+    const cookie = await kv.get(`user:${userId}:cookie`);
+    return cookie;
+}
+
+// Helper function to save user's cookie to KV
+async function saveUserCookie(userId, cookie) {
+    await kv.set(`user:${userId}:cookie`, cookie);
+}
+
+// === AUTH API ENDPOINTY ===
+app.post('/api/auth/login', async (req, res) => {
+    const { username, password, remember } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Vyplňte všechna pole' });
+    }
+
     try {
+        // Authenticate with Bakaláři
+        const response = await axios.post(BAKALARI_LOGIN_URL, {
+            client_id: 'ANDR',
+            grant_type: 'password',
+            username,
+            password
+        }, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+
+        // Get cookies from response
+        const cookies = response.headers['set-cookie'];
+        if (!cookies || cookies.length === 0) {
+            return res.status(401).json({ error: 'Nepodařilo se získat přihlašovací údaje' });
+        }
+
+        // Create user ID from username
+        const userId = username.toLowerCase();
+
+        // Save cookie to KV
+        await saveUserCookie(userId, cookies.join('; '));
+
+        // Save user session
+        req.session.userId = userId;
+        req.session.username = username;
+
+        if (remember) {
+            req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30; // 30 days
+        }
+
+        res.json({ success: true, username });
+    } catch (error) {
+        console.error('Login error:', error);
+
+        if (error.response && error.response.status === 401) {
+            return res.status(401).json({ error: 'Nesprávné přihlašovací údaje' });
+        }
+
+        res.status(500).json({ error: 'Chyba při přihlašování' });
+    }
+});
+
+app.get('/api/auth/check', (req, res) => {
+    if (req.session.userId) {
+        res.json({ authenticated: true, username: req.session.username });
+    } else {
+        res.status(401).json({ authenticated: false });
+    }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ error: 'Chyba při odhlašování' });
+        }
+        res.json({ success: true });
+    });
+});
+
+// === TIMETABLE API ENDPOINTY ===
+app.get('/api/timetable', requireAuth, async (req, res) => {
+    const { type, id } = req.query;
+    const url = `${BASE_URL}/${type}/${id}`;
+
+    try {
+        // Get user's cookie from KV
+        const userCookie = await getUserCookie(req.session.userId);
+        if (!userCookie) {
+            return res.status(401).json({ error: 'Cookie nenalezeno. Přihlaste se znovu.' });
+        }
+
+        const headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Cookie': userCookie
+        };
+
         const response = await axios.get(url, { headers });
         const $ = cheerio.load(response.data);
         const timetable = [];
@@ -63,8 +202,19 @@ app.get('/api/timetable', async (req, res) => {
     }
 });
 
-app.get('/api/definitions', async (req, res) => {
+app.get('/api/definitions', requireAuth, async (req, res) => {
     try {
+        // Get user's cookie from KV
+        const userCookie = await getUserCookie(req.session.userId);
+        if (!userCookie) {
+            return res.status(401).json({ error: 'Cookie nenalezeno. Přihlaste se znovu.' });
+        }
+
+        const headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Cookie': userCookie
+        };
+
         const response = await axios.get(`${BASE_URL}/Class/ZL`, { headers });
         const $ = cheerio.load(response.data);
         const data = { classes: [], teachers: [], rooms: [] };

@@ -54,10 +54,6 @@
     transition: all 0.2s ease;
 }
 
-.timetable-header-cell:hover {
-    background: var(--sidebar-accent);
-}
-
 .timetable-header-cell:first-child {
     width: 60px;
     border-right: 2px solid var(--border);

@@ -5,6 +5,7 @@ let currentValue = '';
 let isOpen = false;
 let searchInput = null;
 let allOptions = [];
+let changeCallback = null;
 
 // Initialize custom dropdown
 export function initCustomDropdown(onChangeCallback) {
@@ -12,6 +13,9 @@ export function initCustomDropdown(onChangeCallback) {
         console.error('Custom dropdown elements not found');
         return;
     }
+
+    // Store callback for later use
+    changeCallback = onChangeCallback;
 
     // Toggle dropdown on trigger click
     dom.valueDropdownTrigger.addEventListener('click', (e) => {
@@ -25,8 +29,8 @@ export function initCustomDropdown(onChangeCallback) {
             const value = e.target.dataset.value;
             selectOption(value, e.target.textContent);
             closeDropdown();
-            if (onChangeCallback) {
-                onChangeCallback();
+            if (changeCallback) {
+                changeCallback();
             }
         }
     });
@@ -115,6 +119,14 @@ export function populateDropdown(items) {
         filterOptions(e.target.value);
     });
 
+    // Handle Enter key to select first visible option
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            selectFirstVisibleOption();
+        }
+    });
+
     // Prevent dropdown from closing when clicking on search input
     searchInput.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -179,4 +191,24 @@ export function setDropdownValue(value, label) {
 // Get current dropdown value
 export function getDropdownValue() {
     return currentValue;
+}
+
+// Select first visible option
+function selectFirstVisibleOption() {
+    const options = dom.valueDropdownMenu.querySelectorAll('.custom-dropdown-option');
+
+    for (const option of options) {
+        if (option.style.display !== 'none') {
+            const value = option.dataset.value;
+            const label = option.textContent;
+            selectOption(value, label);
+            closeDropdown();
+
+            // Trigger the change callback
+            if (changeCallback) {
+                changeCallback();
+            }
+            break;
+        }
+    }
 }

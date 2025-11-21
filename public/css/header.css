@@ -64,7 +64,7 @@ h1 {
 
 .controls {
     display: flex;
-    gap: 12px;
+    gap: 16px;
     flex-wrap: wrap;
     align-items: center;
 }
@@ -74,7 +74,7 @@ h1 {
     display: flex;
     gap: 0;
     background: var(--card-bg);
-    border: 2px solid var(--accent);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 4px;
     box-shadow: 0 2px 8px var(--shadow);
@@ -95,13 +95,12 @@ h1 {
 
 .schedule-type-btn:hover {
     color: var(--text-main);
-    background: var(--border-light);
+    background: var(--border);
 }
 
 .schedule-type-btn.active {
     background: var(--accent);
     color: white;
-    box-shadow: 0 2px 8px hsla(217, 91%, 60%, 0.3);
 }
 
 .type-selector {
@@ -252,7 +251,7 @@ h1 {
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--card-bg);
+    background: var(--header-bg);
     backdrop-filter: blur(10px);
     border: 2px solid var(--spsd-orange);
     border-top: none;
@@ -323,12 +322,12 @@ h1 {
     padding: 12px 16px;
     border: none;
     border-bottom: 2px solid var(--border);
-    background: var(--card-bg);
+    background: var(--header-bg);
     color: var(--text-main);
     font-size: 0.95rem;
     font-family: 'Roboto', sans-serif;
     outline: none;
-    z-index: 1;
+    z-index: 10;
 }
 
 .custom-dropdown-search::placeholder {

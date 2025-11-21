@@ -176,7 +176,10 @@ export function renderTimetable(data) {
 
     // Zjistíme všechny hodiny, které se vyskytují v rozvrhu
     const allHours = [...new Set(data.map(d => d.hour))].sort((a, b) => a - b);
-    const maxHour = Math.max(...allHours, 0);
+    const maxHour = Math.max(...allHours, -1);
+
+    // Check if timetable is completely empty (no lessons at all)
+    const isCompletelyEmpty = data.length === 0 || maxHour < 0;
 
     // Vytvoříme hlavičku tabulky s hodinami
     const headerRow = document.createElement('div');
@@ -188,18 +191,30 @@ export function renderTimetable(data) {
     cornerCell.textContent = '';
     headerRow.appendChild(cornerCell);
 
-    // Hlavičky pro hodiny
-    for (let hour = 0; hour <= maxHour; hour++) {
+    // Hlavičky pro hodiny - pokud je rozvrh úplně prázdný, zobrazíme jen jeden sloupec
+    if (isCompletelyEmpty) {
         const headerCell = document.createElement('div');
         headerCell.className = 'timetable-header-cell';
-
-        const timeInfo = lessonTimes.find(t => t.hour === hour);
+        const timeInfo = lessonTimes.find(t => t.hour === 0);
         headerCell.innerHTML = `
-            <div style="font-size: 0.85rem;">${hour}.</div>
+            <div style="font-size: 0.85rem;">0.</div>
             <div style="font-size: 0.65rem; font-weight: 400; margin-top: 2px; opacity: 0.8;">${timeInfo ? timeInfo.label : ''}</div>
         `;
-
         headerRow.appendChild(headerCell);
+    } else {
+        // Zobrazíme všechny hodiny
+        for (let hour = 0; hour <= maxHour; hour++) {
+            const headerCell = document.createElement('div');
+            headerCell.className = 'timetable-header-cell';
+
+            const timeInfo = lessonTimes.find(t => t.hour === hour);
+            headerCell.innerHTML = `
+                <div style="font-size: 0.85rem;">${hour}.</div>
+                <div style="font-size: 0.65rem; font-weight: 400; margin-top: 2px; opacity: 0.8;">${timeInfo ? timeInfo.label : ''}</div>
+            `;
+
+            headerRow.appendChild(headerCell);
+        }
     }
 
     dom.timetableGrid.appendChild(headerRow);
@@ -230,7 +245,7 @@ export function renderTimetable(data) {
         row.appendChild(dayCell);
 
         // If no lessons for this day, show empty message
-        if (!hasDayLessons && maxHour >= 0) {
+        if (!hasDayLessons && (maxHour >= 0 || isCompletelyEmpty)) {
             row.classList.add('empty-day');
             const emptyMessageCell = document.createElement('div');
             emptyMessageCell.className = 'empty-day-message';

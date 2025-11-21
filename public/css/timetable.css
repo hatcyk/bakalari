@@ -92,10 +92,6 @@
     height: 120px;
 }
 
-.timetable-row.today-row {
-    background: linear-gradient(90deg, var(--accent-light) 0%, transparent 50%);
-}
-
 .hour-cell {
     display: table-cell;
     text-align: center;
@@ -173,7 +169,6 @@
     background: var(--accent-light);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     color: var(--text-main);
     font-size: 1.1rem;
     font-weight: 700;

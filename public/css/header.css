@@ -13,6 +13,7 @@ header {
     backdrop-filter: blur(10px);
     position: relative;
     overflow: visible;
+    z-index: 100;
 }
 
 header::before {

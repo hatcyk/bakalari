@@ -16,6 +16,80 @@ let selectedType = 'Class'; // Default type
 let selectedScheduleType = 'actual'; // Default schedule type
 let selectedGroup = 'all'; // Default group (all)
 
+// Subject name abbreviations
+const subjectAbbreviations = {
+    'Informační a komunikační technologie': 'IKT',
+    'Elektrická měření': 'Elektr. měření',
+    'Programové vybavení': 'Prog. vybavení',
+    'Ekonomika': 'Ekonomika',
+    'Tělesná výchova': 'TV',
+    'Matematika': 'Matematika',
+    'Anglický jazyk': 'Angličtina',
+    'Český jazyk a literatura': 'Čeština',
+    'Databázové systémy': 'Databáze',
+    'CAD systémy': 'CAD',
+    'Programování': 'Programování',
+    'Hardware': 'Hardware',
+    'Grafická tvorba': 'Grafika',
+    'Kybernetická bezpečnost': 'Kyberbezpečnost',
+    'Datové sítě': 'Datové sítě',
+    'Praxe': 'Praxe'
+};
+
+// Function to abbreviate subject names
+function abbreviateSubject(subjectName) {
+    if (!subjectName) return '';
+
+    // Check if there's a direct mapping
+    if (subjectAbbreviations[subjectName]) {
+        return subjectAbbreviations[subjectName];
+    }
+
+    // If subject name is longer than 20 characters, try to shorten it
+    if (subjectName.length > 20) {
+        // Try to extract acronym from capital letters
+        const capitals = subjectName.match(/[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g);
+        if (capitals && capitals.length > 1) {
+            return capitals.join('');
+        }
+        // Otherwise truncate with ellipsis
+        return subjectName.substring(0, 18) + '...';
+    }
+
+    return subjectName;
+}
+
+// Function to standardize group names
+function standardizeGroupName(groupName) {
+    if (!groupName) return '';
+
+    // Convert to lowercase for easier matching
+    const lower = groupName.toLowerCase().trim();
+
+    // If it contains "celá", keep as "celá"
+    if (lower.includes('celá') || lower === 'cela') {
+        return 'celá';
+    }
+
+    // Match patterns like "1. skupina", "1.skupina", "1 skupina", "skupina 1", etc.
+    const groupMatch = lower.match(/(\d+)[\.\s]*(?:skupina|sk)?|(?:skupina|sk)[\.\s]*(\d+)/);
+    if (groupMatch) {
+        const groupNum = groupMatch[1] || groupMatch[2];
+        return `${groupNum}.sk`;
+    }
+
+    // If the group name already contains ".sk", extract just the number part
+    if (lower.includes('.sk')) {
+        const numMatch = lower.match(/(\d+)\.sk/);
+        if (numMatch) {
+            return `${numMatch[1]}.sk`;
+        }
+    }
+
+    // Return as-is if no pattern matches
+    return groupName;
+}
+
 // Theme management
 function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -63,12 +137,10 @@ typeButtons.forEach(btn => {
         updateTypeButtons();
         populateValueSelect();
 
-        // Show/hide group selector based on type
-        if (selectedType === 'Class') {
-            groupSelect.classList.remove('hidden');
-        } else {
-            groupSelect.classList.add('hidden');
-        }
+        // Reset and hide group selector when changing type
+        selectedGroup = 'all';
+        groupSelect.classList.add('hidden');
+        groupSelect.disabled = true;
 
         loadTimetable();
     });
@@ -96,6 +168,7 @@ scheduleTypeButtons.forEach(btn => {
 // Group selector handler
 groupSelect.addEventListener('change', () => {
     selectedGroup = groupSelect.value;
+    timetableGrid.innerHTML = ''; // Clear the grid before re-rendering
     renderTimetable(currentTimetableData);
 });
 
@@ -232,6 +305,14 @@ async function loadTimetable() {
 
 // Populate group selector from timetable data
 function populateGroupSelector(data) {
+    // Only show group selector for Class type
+    if (selectedType !== 'Class') {
+        groupSelect.classList.add('hidden');
+        groupSelect.disabled = true;
+        selectedGroup = 'all';
+        return;
+    }
+
     // Extract unique groups from the data
     const groups = new Set();
     data.forEach(lesson => {
@@ -241,22 +322,23 @@ function populateGroupSelector(data) {
     });
 
     // If there are groups, show the selector
-    if (groups.size > 0 && selectedType === 'Class') {
+    if (groups.size > 0) {
         groupSelect.classList.remove('hidden');
+        groupSelect.disabled = false;
 
         // Clear and repopulate
         groupSelect.innerHTML = '<option value="all">Celá třída</option>';
 
-        // Sort groups
+        // Sort groups and standardize names
         const sortedGroups = Array.from(groups).sort();
         sortedGroups.forEach(group => {
             const opt = document.createElement('option');
             opt.value = group;
-            opt.textContent = group;
+            opt.textContent = standardizeGroupName(group);
             groupSelect.appendChild(opt);
         });
 
-        // Restore selected group if it exists
+        // Restore selected group if it exists, otherwise reset to 'all'
         if (sortedGroups.includes(selectedGroup)) {
             groupSelect.value = selectedGroup;
         } else {
@@ -265,6 +347,7 @@ function populateGroupSelector(data) {
         }
     } else {
         groupSelect.classList.add('hidden');
+        groupSelect.disabled = true;
         selectedGroup = 'all';
     }
 }
@@ -396,13 +479,15 @@ function renderTimetable(data) {
                 }
                 card.className = cardClass;
 
+                const displaySubject = abbreviateSubject(lesson.subject);
+                const displayGroup = standardizeGroupName(lesson.group);
                 card.innerHTML = `
-                    <div class="lesson-subject">${lesson.subject}</div>
+                    <div class="lesson-subject" title="${lesson.subject}">${displaySubject}</div>
                     <div class="lesson-details">
                         ${lesson.teacher ? `<span>${lesson.teacher}</span>` : ''}
                         ${lesson.room ? `<span>${lesson.room}</span>` : ''}
                     </div>
-                    ${lesson.group ? `<div class="lesson-group">${lesson.group}</div>` : ''}
+                    ${lesson.group ? `<div class="lesson-group">${displayGroup}</div>` : ''}
                 `;
                 lessonCell.appendChild(card);
             });

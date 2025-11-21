@@ -262,9 +262,9 @@ h1 {
 }
 
 select {
-    background: var(--card-bg);
+    background: var(--header-bg);
     color: var(--text-main);
-    border: 2px solid var(--border);
+    border: 2px solid var(--border-light);
     padding: 11px 36px 11px 16px;
     border-radius: 10px;
     font-size: 0.95rem;
@@ -272,24 +272,32 @@ select {
     outline: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px var(--shadow-light);
+    box-shadow: 0 2px 12px var(--shadow);
     appearance: none;
-    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%2364A8FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%2364A8FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
     background-repeat: no-repeat;
     background-position: right 12px center;
-    background-size: 16px;
+    background-size: 18px;
     min-width: 200px;
 }
 
 select:hover {
     border-color: var(--accent);
-    box-shadow: 0 4px 12px var(--shadow);
-    background-color: var(--sidebar-accent);
+    box-shadow: 0 4px 16px var(--shadow);
+    background: var(--sidebar-accent);
+    transform: translateY(-1px);
 }
 
 select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-light), 0 4px 12px var(--shadow);
+    box-shadow: 0 0 0 3px var(--accent-light), 0 4px 16px var(--shadow);
+    background: var(--sidebar-accent);
+}
+
+select option {
+    background: var(--header-bg);
+    color: var(--text-main);
+    padding: 10px;
 }
 
 /* GRID ROZVRHU */
@@ -361,23 +369,26 @@ select:focus {
 
 .timetable-header-cell.today {
     color: var(--today-highlight);
-    border-bottom-color: var(--today-highlight);
+    border-bottom: 3px solid var(--today-highlight);
     background: var(--accent-light);
+    font-weight: 800;
 }
 
 .today-badge {
-    display: block;
+    display: inline-block;
     margin-top: 4px;
-    padding: 2px 6px;
+    padding: 3px 8px;
     background: var(--today-highlight);
     color: white;
-    font-size: 0.65rem;
-    border-radius: 8px;
-    font-weight: 600;
+    font-size: 0.7rem;
+    border-radius: 6px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px hsla(217, 91%, 60%, 0.4);
 }
 
 .timetable-row {
     display: table-row;
+    height: 120px;
 }
 
 .timetable-row:hover {
@@ -385,7 +396,18 @@ select:focus {
 }
 
 .timetable-row.today-row {
-    background: linear-gradient(90deg, var(--accent-light) 0%, transparent 100%);
+    background: linear-gradient(90deg, var(--accent-light) 0%, transparent 50%);
+    position: relative;
+}
+
+.timetable-row.today-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--today-highlight);
 }
 
 .hour-cell {
@@ -404,17 +426,18 @@ select:focus {
 
 .lesson-cell {
     display: table-cell;
-    padding: 8px;
+    padding: 10px;
     border-bottom: 1px solid var(--border);
     border-right: 1px solid var(--border);
     vertical-align: top;
-    min-width: 150px;
-    min-height: 90px;
-    height: 100%;
+    min-width: 160px;
+    height: 120px;
 }
 
 .lesson-cell.today {
     background: linear-gradient(135deg, transparent 0%, var(--accent-light) 100%);
+    border-right: 2px solid var(--today-highlight);
+    border-left: 2px solid var(--today-highlight);
 }
 
 .lesson-cell:empty {
@@ -481,15 +504,38 @@ select:focus {
 }
 
 .lesson-card.current-time {
-    border-left-color: var(--current-time);
-    background: hsla(142, 76%, 42%, 0.12);
-    box-shadow: 0 0 16px hsla(142, 76%, 42%, 0.25);
-    animation: pulse 2s ease-in-out infinite;
+    border-left-color: hsl(180, 100%, 45%);
+    border-left-width: 5px;
+    background: hsla(180, 100%, 45%, 0.15);
+    box-shadow: 0 0 20px hsla(180, 100%, 45%, 0.3), inset 0 0 20px hsla(180, 100%, 45%, 0.05);
+    animation: pulse 2.5s ease-in-out infinite;
+    position: relative;
+}
+
+.lesson-card.current-time::before {
+    content: '●';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: hsl(180, 100%, 45%);
+    font-size: 0.8rem;
+    animation: blink 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 16px hsla(142, 76%, 42%, 0.25); }
-    50% { box-shadow: 0 0 24px hsla(142, 76%, 42%, 0.35); }
+    0%, 100% {
+        box-shadow: 0 0 20px hsla(180, 100%, 45%, 0.3), inset 0 0 20px hsla(180, 100%, 45%, 0.05);
+        transform: translateX(2px);
+    }
+    50% {
+        box-shadow: 0 0 28px hsla(180, 100%, 45%, 0.45), inset 0 0 30px hsla(180, 100%, 45%, 0.08);
+        transform: translateX(3px);
+    }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
 
 .lesson-subject {

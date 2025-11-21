@@ -22,6 +22,8 @@ function initTypeButtons() {
 
     dom.typeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
+            const wasTypeChanged = state.selectedType !== btn.dataset.type;
+
             updateState('selectedType', btn.dataset.type);
             updateTypeButtons();
             populateValueSelect();
@@ -33,8 +35,11 @@ function initTypeButtons() {
             updateState('selectedGroup', 'all');
             dom.groupSelect.classList.add('hidden');
 
-            // Auto-open dropdown after changing type
-            setTimeout(() => openDropdown(), 100);
+            // Auto-open dropdown only when switching types manually (clicking the button)
+            // Don't open when coming from modal where value is already pre-selected
+            if (wasTypeChanged) {
+                setTimeout(() => openDropdown(), 100);
+            }
         });
     });
 }

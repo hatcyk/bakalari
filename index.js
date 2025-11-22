@@ -189,7 +189,7 @@ app.get('/api/timetable', async (req, res) => {
         });
 
         //fs.writeFileSync(filepath, yamlContent, 'utf8');
-        console.log(`\n✅ DEBUG: Data uložena do souboru: ${filepath}\n`);
+        //console.log(`\n✅ DEBUG: Data uložena do souboru: ${filepath}\n`);
 
         res.json(timetable);
     } catch (error) {

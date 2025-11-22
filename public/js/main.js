@@ -8,6 +8,19 @@ import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } 
 import { buildTeacherAbbreviationMap } from './utils.js';
 import { initSunData } from './suntime.js';
 
+// Offline banner handler
+function initOfflineBanner() {
+    window.addEventListener('offlineModeChange', (event) => {
+        if (!dom.offlineBanner) return;
+
+        if (event.detail.offline) {
+            dom.offlineBanner.classList.remove('hidden');
+        } else {
+            dom.offlineBanner.classList.add('hidden');
+        }
+    });
+}
+
 // Type button handlers
 function updateTypeButtons() {
     dom.typeButtons.forEach(btn => {
@@ -83,6 +96,9 @@ async function init() {
 
         // Initialize modal listeners with error handling
         initModalListeners();
+
+        // Initialize offline banner
+        initOfflineBanner();
 
         // Initialize custom dropdown
         initCustomDropdown(loadTimetable);

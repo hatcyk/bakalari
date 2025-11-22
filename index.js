@@ -101,6 +101,11 @@ app.get('/api/timetable', async (req, res) => {
                                 // Pro absent hodiny použít InfoAbsentName jako subject
                                 subject = data.InfoAbsentName;  // např. "přednáška"
 
+                                // Kapitalizovat první písmeno (přednáška -> Přednáška)
+                                if (subject && subject.length > 0) {
+                                    subject = subject.charAt(0).toUpperCase() + subject.slice(1);
+                                }
+
                                 // Přidat absentinfo do changeInfo
                                 finalChangeInfo = {
                                     raw: data.absentinfo || "Absence",

@@ -32,6 +32,7 @@ export const subjectAbbreviations = {
     'Německý jazyk': 'NJ',
     'Český jazyk a literatura': 'ČJ',
     'Občanská nauka': 'OBN',
+    'Základy práva': 'ZP',
     'Dějepis': 'DEJ',
     'Fyzika': 'FYZ',
     'Chemie': 'CHE',

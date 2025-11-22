@@ -6,40 +6,63 @@
     header {
         flex-direction: column;
         align-items: stretch;
-        padding: 16px;
+        padding: 12px;
+        padding-top: 12px;
         gap: 12px;
+        position: relative;
     }
 
+    /* First row: Logo left, Title center, Theme button right */
     .header-left {
-        flex-direction: column;
-        gap: 12px;
+        display: flex;
+        flex-direction: row;
         align-items: center;
+        justify-content: center;
+        position: relative;
     }
 
     .logo {
-        height: 40px;
+        height: 32px;
+        position: absolute;
+        left: 0;
     }
 
     .logo-dark,
     .logo-light {
-        height: 40px;
+        height: 32px;
     }
 
     h1 {
-        font-size: 1.5rem;
-        text-align: center;
-        justify-content: center;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+    }
+
+    /* Theme toggle in top right */
+    .theme-toggle {
+        position: absolute;
+        top: 12px;
+        right: 12px;
     }
 
     .controls {
         flex-direction: column;
         gap: 10px;
+        align-items: center;
     }
 
     .schedule-type-selector,
     .type-selector {
-        width: 100%;
+        width: auto;
+        max-width: 90%;
         justify-content: center;
+    }
+
+    .custom-dropdown {
+        width: auto;
+        max-width: 90%;
     }
 
     .schedule-type-btn,

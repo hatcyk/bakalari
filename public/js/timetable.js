@@ -147,12 +147,33 @@ export function renderTimetable(data) {
         const dayLessons = data.filter(d => d.day === dayIndex);
         const hasDayLessons = dayLessons.length > 0;
 
+        // Calculate date for this day based on schedule type
+        let dateStr = '';
+
+        if (state.selectedScheduleType === 'permanent') {
+            // Stálý týden - NO dates
+            dateStr = '';
+        } else if (state.selectedScheduleType === 'actual') {
+            // Aktuální týden - show CURRENT dates
+            const monday = getMondayOfWeek(0);  // Current week
+            const currentDate = new Date(monday);
+            currentDate.setDate(monday.getDate() + dayIndex);
+            dateStr = `${currentDate.getDate()}.${currentDate.getMonth() + 1}.`;
+        } else if (state.selectedScheduleType === 'next') {
+            // Příští týden - show dates +7 days
+            const monday = getMondayOfWeek(1);  // Next week (offset +1)
+            const currentDate = new Date(monday);
+            currentDate.setDate(monday.getDate() + dayIndex);
+            dateStr = `${currentDate.getDate()}.${currentDate.getMonth() + 1}.`;
+        }
+
         // První buňka - název dne
         const dayCell = document.createElement('div');
         dayCell.className = 'hour-cell';
         dayCell.innerHTML = `
             <div class="day-name-container">
                 <div style="font-weight: 700;">${day}</div>
+                ${dateStr ? `<div style="font-size: 0.7rem; opacity: 0.7; margin-top: 2px;">${dateStr}</div>` : ''}
                 ${dayIndex === todayIndex ? '<div class="today-badge">DNES</div>' : ''}
             </div>
         `;
@@ -224,14 +245,45 @@ export function renderTimetable(data) {
                     const displaySubject = abbreviateSubject(lesson.subject);
                     const displayTeacher = abbreviateTeacherName(lesson.teacher);
                     const displayGroup = standardizeGroupName(lesson.group);
-                    card.innerHTML = `
-                        <div class="lesson-subject" title="${lesson.subject}">${displaySubject}</div>
-                        <div class="lesson-details">
-                            ${lesson.teacher ? `<span title="${lesson.teacher}">${displayTeacher}</span>` : ''}
-                            ${lesson.room ? `<span>${lesson.room}</span>` : ''}
-                        </div>
-                        ${lesson.group ? `<div class="lesson-group">${displayGroup}</div>` : ''}
-                    `;
+
+                    // Extract class name from group for Teacher/Room views
+                    const parsedGroup = parseGroupName(lesson.group);
+                    const className = parsedGroup ? parsedGroup.classId : '';
+
+                    // Render different content based on timetable type
+                    let cardContent = '';
+
+                    if (state.selectedType === 'Teacher') {
+                        // Teacher view: Show Subject, Room, Class (no teacher)
+                        cardContent = `
+                            <div class="lesson-subject" title="${lesson.subject}">${displaySubject}</div>
+                            <div class="lesson-details">
+                                ${lesson.room ? `<span>${lesson.room}</span>` : ''}
+                            </div>
+                            ${className ? `<div class="lesson-group">${className}</div>` : ''}
+                        `;
+                    } else if (state.selectedType === 'Room') {
+                        // Room view: Show Subject, Teacher, Class (no room)
+                        cardContent = `
+                            <div class="lesson-subject" title="${lesson.subject}">${displaySubject}</div>
+                            <div class="lesson-details">
+                                ${lesson.teacher ? `<span title="${lesson.teacher}">${displayTeacher}</span>` : ''}
+                            </div>
+                            ${className ? `<div class="lesson-group">${className}</div>` : ''}
+                        `;
+                    } else {
+                        // Class view: Show Subject, Teacher, Room, Group (default)
+                        cardContent = `
+                            <div class="lesson-subject" title="${lesson.subject}">${displaySubject}</div>
+                            <div class="lesson-details">
+                                ${lesson.teacher ? `<span title="${lesson.teacher}">${displayTeacher}</span>` : ''}
+                                ${lesson.room ? `<span>${lesson.room}</span>` : ''}
+                            </div>
+                            ${lesson.group ? `<div class="lesson-group">${displayGroup}</div>` : ''}
+                        `;
+                    }
+
+                    card.innerHTML = cardContent;
 
                     // Add click event to show modal
                     card.style.cursor = 'pointer';

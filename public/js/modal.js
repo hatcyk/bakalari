@@ -17,17 +17,19 @@ export function showLessonModal(lesson) {
 
     // Set teacher (full name) with clickable link
     const teacherEl = document.getElementById('modalTeacher');
-    console.log('Lesson teacher data:', lesson.teacher, 'Selected type:', state.selectedType);
-    if (lesson.teacher && state.selectedType !== 'Teacher') {
-        teacherEl.innerHTML = `<a href="#" class="modal-link" data-type="Teacher" data-name="${lesson.teacher}">${lesson.teacher}</a>`;
+    const teacherContainer = teacherEl.parentElement;
+
+    // Hide teacher row completely when viewing a teacher's timetable
+    if (state.selectedType === 'Teacher') {
+        teacherContainer.style.display = 'none';
     } else {
-        // When viewing a teacher's schedule, fallback to the selected teacher's name
-        let teacherName = lesson.teacher;
-        if (!teacherName && state.selectedType === 'Teacher' && state.selectedValue) {
-            const teacher = state.definitions?.teachers?.find(t => t.id === state.selectedValue);
-            teacherName = teacher?.name;
+        teacherContainer.style.display = 'flex';
+
+        if (lesson.teacher) {
+            teacherEl.innerHTML = `<a href="#" class="modal-link" data-type="Teacher" data-name="${lesson.teacher}">${lesson.teacher}</a>`;
+        } else {
+            teacherEl.textContent = 'Není zadáno';
         }
-        teacherEl.textContent = teacherName || 'Není zadáno';
     }
 
 

@@ -153,7 +153,10 @@ export function showError(msg, errorDiv) {
 }
 
 // Parse change info to make it more understandable
-// Example: "Suplování: CJL, Lichtágová Denisa (ZP, VT)"
+// Examples:
+// - "Suplování: CJL, Lichtágová Denisa (ZP, VT)"
+// - "Zrušeno - Nemoc učitele"
+// - "Vyjmuto"
 export function parseChangeInfo(changeInfoRaw) {
     if (!changeInfoRaw) return null;
 
@@ -162,10 +165,30 @@ export function parseChangeInfo(changeInfoRaw) {
         newSubject: null,
         newTeacher: null,
         originalInfo: null,
+        reason: null,
         formatted: changeInfoRaw
     };
 
-    // Match pattern: "Type: Subject, Teacher (Original)"
+    // Check for cancellation/removal patterns: "Zrušeno - Důvod" or "Vyjmuto - Důvod"
+    const cancelMatch = changeInfoRaw.match(/^(Zrušeno|Vyjmuto)(?:\s*-\s*(.+))?$/i);
+    if (cancelMatch) {
+        result.type = cancelMatch[1].trim();
+        result.reason = cancelMatch[2] ? cancelMatch[2].trim() : null;
+
+        const lines = [];
+        const icon = result.type.toLowerCase() === 'zrušeno' ? '❌' : '🚫';
+
+        if (result.reason) {
+            lines.push(`${icon} ${result.type}: ${result.reason}`);
+        } else {
+            lines.push(`${icon} ${result.type}`);
+        }
+
+        result.formatted = lines.join('\n');
+        return result;
+    }
+
+    // Match pattern for substitution: "Type: Subject, Teacher (Original)"
     const match = changeInfoRaw.match(/^([^:]+):\s*([^,]+),\s*([^(]+)\s*\(([^)]+)\)/);
 
     if (match) {
@@ -197,8 +220,15 @@ export function parseChangeInfo(changeInfoRaw) {
 
         result.formatted = lines.join('\n');
     } else {
-        // Fallback for other formats
-        result.formatted = `ℹ️ ${changeInfoRaw}`;
+        // Check if it's just a date (DD.MM.YYYY or similar)
+        const dateMatch = changeInfoRaw.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/);
+        if (dateMatch) {
+            // Don't show just a date, show it as "Změněno"
+            result.formatted = `ℹ️ Změněno (${changeInfoRaw})`;
+        } else {
+            // Fallback for other formats
+            result.formatted = `ℹ️ ${changeInfoRaw}`;
+        }
     }
 
     return result;

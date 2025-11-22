@@ -5,7 +5,6 @@ export const state = {
     selectedDayIndex: null,
     selectedType: 'Class',
     selectedScheduleType: 'actual',
-    selectedGroup: 'all',
     weekOffset: 0
 };
 

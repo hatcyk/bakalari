@@ -36,8 +36,13 @@ const headers = {
 // === API ENDPOINTY ===
 app.get('/api/timetable', async (req, res) => {
     const { type, id, schedule, date } = req.query;
-    // Schedule can be 'actual' (default) or 'permanent'
-    const scheduleType = schedule === 'permanent' ? 'Permanent' : 'Actual';
+    // Schedule can be 'actual' (default), 'permanent', or 'next'
+    let scheduleType = 'Actual';
+    if (schedule === 'permanent') {
+        scheduleType = 'Permanent';
+    } else if (schedule === 'next') {
+        scheduleType = 'Next';
+    }
 
     // Build URL with optional date parameter
     let url = `${BASE_URL_TEMPLATE}/${scheduleType}/${type}/${id}`;

@@ -37,94 +37,6 @@ export function populateValueSelect() {
     populateDropdown(items);
 }
 
-// Populate group selector
-export function populateGroupSelector(data) {
-    if (!dom.groupSelect) return;
-
-    // Only show group selector for Class type
-    if (state.selectedType !== 'Class') {
-        dom.groupSelect.classList.add('hidden');
-        updateState('selectedGroup', 'all');
-        return;
-    }
-
-    // Get the currently selected class ID
-    const currentClassId = getDropdownValue();
-    if (!currentClassId) {
-        dom.groupSelect.classList.add('hidden');
-        return;
-    }
-
-    // Extract unique groups for the CURRENT CLASS only
-    const groupsForClass = new Set();
-    data.forEach(lesson => {
-        if (lesson.group) {
-            const parsed = parseGroupName(lesson.group);
-            if (parsed && parsed.classId === currentClassId) {
-                // Store the full group name as value, display name for text
-                groupsForClass.add(lesson.group);
-            }
-        }
-    });
-
-    // If there are groups for this class, show the selector
-    if (groupsForClass.size > 0) {
-        dom.groupSelect.classList.remove('hidden');
-
-        // Clear and repopulate with buttons
-        dom.groupSelect.innerHTML = '';
-
-        // Sort groups by group number
-        const sortedGroups = Array.from(groupsForClass).sort((a, b) => {
-            const parsedA = parseGroupName(a);
-            const parsedB = parseGroupName(b);
-            if (parsedA && parsedB) {
-                return parsedA.groupName.localeCompare(parsedB.groupName);
-            }
-            return 0;
-        });
-
-        // Add "Celá třída" button
-        const allBtn = document.createElement('button');
-        allBtn.className = 'group-btn';
-        allBtn.textContent = 'Celá třída';
-        allBtn.dataset.group = 'all';
-        if (state.selectedGroup === 'all') {
-            allBtn.classList.add('active');
-        }
-        dom.groupSelect.appendChild(allBtn);
-
-        // Add group buttons
-        sortedGroups.forEach(group => {
-            const btn = document.createElement('button');
-            btn.className = 'group-btn';
-            btn.dataset.group = group;
-            const parsed = parseGroupName(group);
-            btn.textContent = parsed ? standardizeGroupName(parsed.groupName) : group;
-            if (state.selectedGroup === group) {
-                btn.classList.add('active');
-            }
-            dom.groupSelect.appendChild(btn);
-        });
-
-        // Restore selected group if it exists, otherwise reset to 'all'
-        if (!sortedGroups.includes(state.selectedGroup) && state.selectedGroup !== 'all') {
-            updateState('selectedGroup', 'all');
-            // Update active button state to reflect the reset
-            dom.groupSelect.querySelectorAll('.group-btn').forEach(btn => {
-                if (btn.dataset.group === 'all') {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-        }
-    } else {
-        dom.groupSelect.classList.add('hidden');
-        updateState('selectedGroup', 'all');
-    }
-}
-
 // Create day selector for mobile
 export function createDaySelector() {
     if (!dom.daySelector) return;
@@ -281,11 +193,6 @@ export function renderTimetable(data) {
                 // Najdeme všechny hodiny pro tento den a hodinu
                 let lessons = data.filter(d => d.day === dayIndex && d.hour === hour);
 
-                // Filter by selected group
-                if (state.selectedGroup !== 'all') {
-                    lessons = lessons.filter(d => d.group === state.selectedGroup || !d.group);
-                }
-
                 lessons.forEach(lesson => {
                     const card = document.createElement('div');
                     let cardClass = 'lesson-card';
@@ -354,7 +261,6 @@ export async function loadTimetable() {
         const data = await fetchTimetable(state.selectedType, id, state.selectedScheduleType, dateParam);
 
         updateState('currentTimetableData', data);
-        populateGroupSelector(data);
         createDaySelector();
         renderTimetable(data);
 

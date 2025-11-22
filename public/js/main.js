@@ -31,10 +31,6 @@ function initTypeButtons() {
             // Clear dropdown display when switching types
             setDropdownValue('', 'Vyberte...');
 
-            // Reset and hide group selector when changing type
-            updateState('selectedGroup', 'all');
-            dom.groupSelect.classList.add('hidden');
-
             // Auto-open dropdown only when switching types manually (clicking the button)
             // Don't open when coming from modal where value is already pre-selected
             if (wasTypeChanged) {
@@ -67,37 +63,6 @@ function initScheduleTypeButtons() {
     });
 }
 
-// Group selector handler
-function initGroupSelector() {
-    if (!dom.groupSelect) return;
-
-    // Use event delegation to handle button clicks
-    dom.groupSelect.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('group-btn')) {
-            const group = e.target.dataset.group;
-            updateState('selectedGroup', group);
-            console.log('Group changed to:', state.selectedGroup);
-
-            // Update active button
-            dom.groupSelect.querySelectorAll('.group-btn').forEach(btn => {
-                if (btn.dataset.group === group) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-
-            // Re-render timetable
-            dom.timetableGrid.innerHTML = '';
-            createDaySelector();
-
-            // Re-render with current data
-            const { renderTimetable } = await import('./timetable.js');
-            renderTimetable(state.currentTimetableData);
-        }
-    });
-}
-
 // Value select handler (now handled by custom dropdown)
 // The custom dropdown will call loadTimetable on selection
 
@@ -127,7 +92,6 @@ async function init() {
         // Initialize event listeners
         initTypeButtons();
         initScheduleTypeButtons();
-        initGroupSelector();
 
         // Restore saved selection
         const savedType = localStorage.getItem('selectedType');

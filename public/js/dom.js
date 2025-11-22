@@ -7,7 +7,6 @@ export const dom = {
     valueDropdownTrigger: null,
     valueDropdownLabel: null,
     valueDropdownMenu: null,
-    groupSelect: null,
     timetableGrid: null,
     loading: null,
     errorDiv: null,
@@ -26,7 +25,6 @@ export function initDOM() {
     dom.valueDropdownTrigger = document.getElementById('valueDropdownTrigger');
     dom.valueDropdownLabel = document.getElementById('valueDropdownLabel');
     dom.valueDropdownMenu = document.getElementById('valueDropdownMenu');
-    dom.groupSelect = document.getElementById('groupSelect');
     dom.timetableGrid = document.getElementById('timetable');
     dom.loading = document.getElementById('loading');
     dom.errorDiv = document.getElementById('error');

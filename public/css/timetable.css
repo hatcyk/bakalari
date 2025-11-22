@@ -100,6 +100,7 @@
     color: var(--spsd-orange);
     padding: 12px 8px;
     border-right: 2px solid var(--border);
+    border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
     background: var(--header-bg);
     vertical-align: middle;
@@ -109,6 +110,7 @@
 .lesson-cell {
     display: table-cell;
     padding: 10px;
+    border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
     border-right: 1px solid var(--border);
     vertical-align: top;
@@ -165,8 +167,9 @@
     padding: 30px 20px;
     text-align: center;
     vertical-align: middle;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
     color: var(--text-main);
     font-size: 1.1rem;
     font-weight: 700;

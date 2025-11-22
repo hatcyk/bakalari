@@ -21,7 +21,13 @@ export function showLessonModal(lesson) {
     if (lesson.teacher && state.selectedType !== 'Teacher') {
         teacherEl.innerHTML = `<a href="#" class="modal-link" data-type="Teacher" data-name="${lesson.teacher}">${lesson.teacher}</a>`;
     } else {
-        teacherEl.textContent = lesson.teacher || 'Není zadáno';
+        // When viewing a teacher's schedule, fallback to the selected teacher's name
+        let teacherName = lesson.teacher;
+        if (!teacherName && state.selectedType === 'Teacher' && state.selectedValue) {
+            const teacher = state.definitions?.teachers?.find(t => t.id === state.selectedValue);
+            teacherName = teacher?.name;
+        }
+        teacherEl.textContent = teacherName || 'Není zadáno';
     }
 
 

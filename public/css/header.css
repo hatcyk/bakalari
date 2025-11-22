@@ -164,41 +164,6 @@ h1 {
     height: 20px;
 }
 
-/* Group Selector */
-.group-selector {
-    display: flex;
-    gap: 4px;
-    background: var(--card-bg);
-    border: 2px solid var(--spsd-orange);
-    border-radius: 10px;
-    padding: 4px;
-    box-shadow: 0 2px 8px var(--shadow);
-}
-
-.group-btn {
-    background: transparent;
-    color: var(--text-dim);
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.group-btn:hover {
-    color: var(--text-main);
-    background: var(--border-light);
-}
-
-.group-btn.active {
-    background: var(--spsd-orange);
-    color: white;
-    box-shadow: 0 2px 8px rgba(235, 93, 67, 0.3);
-}
-
 /* Custom Dropdown */
 .custom-dropdown {
     position: relative;

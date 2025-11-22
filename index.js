@@ -145,9 +145,9 @@ app.get('/api/timetable', async (req, res) => {
         const debugDir = path.join(__dirname, 'debug_output');
 
         // Vytvořit debug složku, pokud neexistuje
-        if (!fs.existsSync(debugDir)) {
-            fs.mkdirSync(debugDir);
-        }
+        //if (!fs.existsSync(debugDir)) {
+        //    fs.mkdirSync(debugDir);
+        //}
 
         const filepath = path.join(debugDir, filename);
 
@@ -187,8 +187,8 @@ app.get('/api/timetable', async (req, res) => {
             yamlContent += `\n`;
         });
 
-        fs.writeFileSync(filepath, yamlContent, 'utf8');
-        console.log(`\n✅ DEBUG: Data uložena do souboru: ${filepath}\n`);
+        //fs.writeFileSync(filepath, yamlContent, 'utf8');
+        //console.log(`\n✅ DEBUG: Data uložena do souboru: ${filepath}\n`);
 
         res.json(timetable);
     } catch (error) {
@@ -259,7 +259,6 @@ const PORT = 3000;
 const HOST = '0.0.0.0'; // Naslouchá na všech síťových rozhraních
 app.listen(PORT, HOST, () => {
     const localIP = getLocalIP();
-    console.log(`🤖 Web běží na:`);
-    console.log(`   - Lokálně: http://localhost:${PORT}`);
-    console.log(`   - V síti:  http://${localIP}:${PORT}`);
+    console.log(`http://localhost:${PORT}`);
+    console.log(`http://${localIP}:${PORT}`);
 });

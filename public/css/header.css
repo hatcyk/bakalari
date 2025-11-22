@@ -304,3 +304,10 @@ h1 {
 .custom-dropdown-search:focus {
     border-bottom-color: var(--spsd-orange);
 }
+
+/* Desktop: dropdown-row should not affect layout */
+@media (min-width: 769px) {
+    .dropdown-row {
+        display: contents;
+    }
+}

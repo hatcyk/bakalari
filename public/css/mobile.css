@@ -40,13 +40,6 @@
         margin: 0;
     }
 
-    /* Theme toggle in top right of header */
-    .theme-toggle {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-    }
-
     .controls {
         flex-direction: column;
         gap: 10px;
@@ -62,9 +55,24 @@
         padding: 3px;
     }
 
-    .custom-dropdown {
+    /* Flex row for dropdown + theme toggle */
+    .dropdown-row {
+        display: flex;
+        gap: 8px;
         width: 100%;
-        max-width: 100%;
+        align-items: center;
+    }
+
+    .custom-dropdown {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Theme toggle inline (not absolute) */
+    .theme-toggle {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
     }
 
     .schedule-type-btn,

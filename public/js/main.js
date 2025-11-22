@@ -123,6 +123,10 @@ async function init() {
             dom.errorDiv.textContent = "Nepodařilo se načíst seznamy. Běží backend?";
             dom.errorDiv.classList.remove('hidden');
         }
+    } finally {
+        if (dom.loading) {
+            dom.loading.classList.add('hidden');
+        }
     }
 }
 

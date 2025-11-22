@@ -7,7 +7,7 @@
         flex-direction: column;
         align-items: stretch;
         padding: 12px;
-        padding-top: 12px;
+        padding-top: 16px;
         gap: 12px;
         position: relative;
     }
@@ -22,28 +22,28 @@
     }
 
     .logo {
-        height: 32px;
+        height: 40px;
         position: absolute;
         left: 0;
     }
 
     .logo-dark,
     .logo-light {
-        height: 32px;
+        height: 40px;
     }
 
     h1 {
-        font-size: 1.1rem;
+        font-size: 1.3rem;
         display: flex;
         align-items: center;
         gap: 6px;
         margin: 0;
     }
 
-    /* Theme toggle in bottom right of header */
+    /* Theme toggle in top right of header */
     .theme-toggle {
         position: absolute;
-        bottom: 12px;
+        top: 12px;
         right: 12px;
     }
 
@@ -185,6 +185,6 @@
     }
 
     h1 {
-        font-size: 1rem;
+        font-size: 1.15rem;
     }
 }

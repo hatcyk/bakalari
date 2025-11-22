@@ -26,28 +26,11 @@ function parseTimeToDate(timeStr) {
 // Initialize sun data
 export async function initSunData() {
     try {
-        // Try to get user's location
-        if (navigator.geolocation) {
-            const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    timeout: 5000
-                });
-            });
-
-            sunData = await fetchSunriseSunset(
-                position.coords.latitude,
-                position.coords.longitude
-            );
-        } else {
-            // Fallback to Prague
-            sunData = await fetchSunriseSunset(PRAGUE_LAT, PRAGUE_LNG);
-        }
-
-        console.log('Sun data loaded:', sunData);
-    } catch (error) {
-        // Fallback to Prague if geolocation fails
-        console.log('Using Prague as fallback location');
+        // Always use Prague coordinates (school location)
         sunData = await fetchSunriseSunset(PRAGUE_LAT, PRAGUE_LNG);
+        console.log('Sun data loaded for Prague:', sunData);
+    } catch (error) {
+        console.error('Failed to load sun data:', error);
     }
 }
 

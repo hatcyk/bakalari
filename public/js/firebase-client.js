@@ -125,7 +125,9 @@ export async function fetchDefinitionsFromFirebase() {
 export async function fetchTimetableFromFirebase(type, id, scheduleType) {
     try {
         const db = getFirestore();
-        const docKey = `${type}_${id}_${scheduleType}`;
+        // Capitalize schedule type to match Firebase document keys (Actual/Permanent/Next)
+        const capitalizedScheduleType = scheduleType.charAt(0).toUpperCase() + scheduleType.slice(1);
+        const docKey = `${type}_${id}_${capitalizedScheduleType}`;
         const doc = await db.collection('timetables').doc(docKey).get();
 
         if (!doc.exists) {

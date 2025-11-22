@@ -1,4 +1,9 @@
 @media (max-width: 768px) {
+    html, body {
+        overflow: hidden;
+        height: 100%;
+    }
+
     .app-container {
         padding: 12px;
     }

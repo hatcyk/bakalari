@@ -79,7 +79,8 @@ export const subjectAbbreviations = {
     'Seminář k profilové maturitě': 'Sem. PM',
     'Seminář k maturitní zkoušce': 'Sem. MZ',
     'Projektování': 'PRJ',
-    'Maturitní projekt': 'MP'
+    'Maturitní projekt': 'MP',
+    'Sociální a profesní komunikace': 'SPK'
 };
 
 // Časová rozmezí hodin

@@ -277,9 +277,23 @@ export async function loadTimetable() {
 
         const data = await fetchTimetable(state.selectedType, id, state.selectedScheduleType, dateParam);
 
-        updateState('currentTimetableData', data);
+        // Filter out "empty" absent lessons (placeholders)
+        // These usually have the date as the subject and no teacher
+        const filteredData = data.filter(lesson => {
+            if (lesson.type === 'absent') {
+                // Check if subject looks like a date (e.g., "st 19.11.")
+                // and there is no teacher assigned
+                const isDatePlaceholder = /^[a-zá-ž]{2,3}\s\d{1,2}\.\d{1,2}\.?$/i.test(lesson.subject);
+                if (isDatePlaceholder && !lesson.teacher) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        updateState('currentTimetableData', filteredData);
         createDaySelector();
-        renderTimetable(data);
+        renderTimetable(filteredData);
 
     } catch (e) {
         dom.errorDiv.textContent = e.message;

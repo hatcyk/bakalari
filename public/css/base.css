@@ -80,3 +80,17 @@ select option {
     padding: 10px;
     font-weight: 500;
 }
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 24px 12px;
+    margin-top: 40px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+footer p {
+    margin: 0;
+}

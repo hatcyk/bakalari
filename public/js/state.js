@@ -5,7 +5,8 @@ export const state = {
     selectedDayIndex: null,
     selectedType: 'Class',
     selectedScheduleType: 'actual',
-    weekOffset: 0
+    weekOffset: 0,
+    teacherAbbreviationMap: null
 };
 
 export function updateState(key, value) {

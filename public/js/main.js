@@ -5,6 +5,7 @@ import { initModalListeners } from './modal.js';
 import { loadTimetable, populateValueSelect, createDaySelector } from './timetable.js';
 import { fetchDefinitions } from './api.js';
 import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } from './dropdown.js';
+import { buildTeacherAbbreviationMap } from './utils.js';
 
 // Type button handlers
 function updateTypeButtons() {
@@ -85,6 +86,10 @@ async function init() {
         // Fetch definitions
         const definitions = await fetchDefinitions();
         updateState('definitions', definitions);
+
+        // Build teacher abbreviation map with collision detection
+        const abbreviationMap = buildTeacherAbbreviationMap(definitions.teachers || []);
+        updateState('teacherAbbreviationMap', abbreviationMap);
 
         // Populate value select
         populateValueSelect();

@@ -55,39 +55,101 @@ export function standardizeGroupName(groupName) {
 }
 
 // Function to abbreviate teacher names to initials
-export function abbreviateTeacherName(fullName) {
+// Helper: Remove titles from teacher name
+function removeTeacherTitles(fullName) {
     if (!fullName) return '';
 
-    // Remove titles from the beginning - handle multiple titles (e.g., "Ing. Bc.")
-    let withoutTitles = fullName;
+    return fullName
+        .replace(/^(Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.)+\s*/gi, '')
+        .replace(/,?\s*(Ph\.D\.|CSc\.)$/gi, '')
+        .trim();
+}
 
-    // Remove all title combinations from the beginning
-    withoutTitles = withoutTitles.replace(/^(Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.)+\s*/gi, '');
+// Detect if name is in reversed format (Surname First)
+function isReversedName(firstPart, lastPart) {
+    // Check if first part ends with common surname suffixes (mainly Czech)
+    const surnameSuffixes = ['ová', 'ný', 'ná', 'ský', 'ská', 'ík', 'ek', 'ák'];
+    const firstLower = firstPart.toLowerCase();
 
-    // Remove titles from the end
-    withoutTitles = withoutTitles.replace(/,?\s*(Ph\.D\.|CSc\.)$/gi, '').trim();
+    for (const suffix of surnameSuffixes) {
+        if (firstLower.endsWith(suffix)) {
+            return true;
+        }
+    }
 
-    // DEBUG log
-    console.log(`[abbreviateTeacherName] Input: "${fullName}" -> Without titles: "${withoutTitles}"`);
+    return false;
+}
 
-    // Split by spaces to get name parts
+// Create abbreviation with first initial and full surname
+function createTeacherAbbreviation(firstName, lastName) {
+    return `${firstName[0]}. ${lastName}`;
+}
+
+// Build abbreviation map with full surnames
+export function buildTeacherAbbreviationMap(teachers) {
+    const abbreviationMap = new Map(); // Map: fullName -> abbreviation
+
+    if (!teachers || teachers.length === 0) return abbreviationMap;
+
+    // Create abbreviation for each teacher: First initial + full surname
+    for (const teacher of teachers) {
+        const name = removeTeacherTitles(teacher.name);
+        const parts = name.split(/\s+/).filter(p => p.length > 0);
+
+        if (parts.length < 2) {
+            // Single name: use first 2 chars
+            abbreviationMap.set(teacher.name, parts[0].substring(0, 2).toUpperCase());
+            continue;
+        }
+
+        let firstName, lastName;
+
+        // Detect reversed format: "Rollová Jitka" vs "Jitka Rollová"
+        if (isReversedName(parts[0], parts[parts.length - 1])) {
+            // Reversed: "Surname FirstName" → swap them
+            lastName = parts[0];
+            firstName = parts[parts.length - 1];
+        } else {
+            // Normal: "FirstName Surname"
+            firstName = parts[0];
+            lastName = parts[parts.length - 1];
+        }
+
+        // Format: "J. Melena", "J. Melzoch"
+        abbreviationMap.set(teacher.name, createTeacherAbbreviation(firstName, lastName));
+    }
+
+    return abbreviationMap;
+}
+
+export function abbreviateTeacherName(fullName, abbreviationMap = null) {
+    if (!fullName) return '';
+
+    // If map is provided and has the name, use it
+    if (abbreviationMap && abbreviationMap.has(fullName)) {
+        return abbreviationMap.get(fullName);
+    }
+
+    // Fallback to simple logic if no map available
+    const withoutTitles = removeTeacherTitles(fullName);
     const parts = withoutTitles.split(/\s+/).filter(p => p.length > 0);
 
     if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
 
-    // Take first letter of first name and first letter of last name
-    if (parts.length === 1) {
-        return parts[0].substring(0, 2).toUpperCase();
+    let firstName, lastName;
+
+    // Detect reversed format
+    if (isReversedName(parts[0], parts[parts.length - 1])) {
+        lastName = parts[0];
+        firstName = parts[parts.length - 1];
+    } else {
+        firstName = parts[0];
+        lastName = parts[parts.length - 1];
     }
 
-    // Get first letter of first and last part
-    const firstInitial = parts[0][0];
-    const lastInitial = parts[parts.length - 1][0];
-
-    const result = (firstInitial + lastInitial).toUpperCase();
-    console.log(`[abbreviateTeacherName] Result: ${result} (from "${parts[0]}" and "${parts[parts.length - 1]}")`);
-
-    return result;
+    // Default: First initial + period + full surname
+    return createTeacherAbbreviation(firstName, lastName);
 }
 
 // Utility funkce pro získání dnešního dne (0-4 = Po-Pá)

@@ -145,9 +145,9 @@ app.get('/api/timetable', async (req, res) => {
         const debugDir = path.join(__dirname, 'debug_output');
 
         // Vytvořit debug složku, pokud neexistuje
-        if (!fs.existsSync(debugDir)) {
-            fs.mkdirSync(debugDir);
-        }
+        //if (!fs.existsSync(debugDir)) {
+            //fs.mkdirSync(debugDir);
+        //}
 
         const filepath = path.join(debugDir, filename);
 
@@ -187,7 +187,7 @@ app.get('/api/timetable', async (req, res) => {
             yamlContent += `\n`;
         });
 
-        fs.writeFileSync(filepath, yamlContent, 'utf8');
+        //fs.writeFileSync(filepath, yamlContent, 'utf8');
         console.log(`\n✅ DEBUG: Data uložena do souboru: ${filepath}\n`);
 
         res.json(timetable);

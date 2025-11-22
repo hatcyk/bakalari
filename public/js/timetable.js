@@ -243,7 +243,7 @@ export function renderTimetable(data) {
                     card.className = cardClass;
 
                     const displaySubject = abbreviateSubject(lesson.subject);
-                    const displayTeacher = abbreviateTeacherName(lesson.teacher);
+                    const displayTeacher = abbreviateTeacherName(lesson.teacher, state.teacherAbbreviationMap);
                     const displayGroup = standardizeGroupName(lesson.group);
 
                     // Extract class name from group for Teacher/Room views

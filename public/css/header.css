@@ -25,6 +25,7 @@ header::before {
     right: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+    transition: background var(--theme-transition);
 }
 
 .header-left {

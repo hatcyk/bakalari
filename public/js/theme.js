@@ -60,6 +60,7 @@ function showNightWarning(callback) {
     const cancelBtn = overlay.querySelector('.theme-warning-cancel');
 
     const closeDialog = (confirmed) => {
+        overlay.classList.add('closing');
         overlay.classList.remove('visible');
         setTimeout(() => {
             overlay.remove();

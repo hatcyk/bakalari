@@ -25,10 +25,44 @@ body {
 }
 
 .loading {
-    text-align: center;
-    padding: 20px;
-    font-size: 1.2rem;
-    color: var(--accent);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--loader-bg);
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.loading:not(.hidden) {
+    display: flex;
+}
+
+.loading .spinner {
+    width: 60px;
+    height: 60px;
+    border: 8px solid var(--text-dim);
+    border-top-color: var(--spsd-orange);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+.loading span {
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .error {

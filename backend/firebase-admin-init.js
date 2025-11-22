@@ -11,7 +11,9 @@ let db = null;
 
 /**
  * Initialize Firebase Admin SDK
- * Requires FIREBASE_SERVICE_ACCOUNT_PATH in .env
+ * Supports two modes:
+ * 1. Local: FIREBASE_SERVICE_ACCOUNT_PATH (path to JSON file)
+ * 2. Vercel: FIREBASE_SERVICE_ACCOUNT (entire JSON as string)
  */
 function initializeFirebaseAdmin() {
     if (firebaseApp) {
@@ -20,17 +22,26 @@ function initializeFirebaseAdmin() {
     }
 
     try {
-        const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+        let serviceAccount;
 
-        if (!serviceAccountPath) {
+        // Check if running on Vercel (or any env with JSON string)
+        if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+            console.log('Loading Firebase from FIREBASE_SERVICE_ACCOUNT env var');
+            serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        }
+        // Local development with file path
+        else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+            console.log('Loading Firebase from file path');
+            const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+            serviceAccount = require(path.resolve(serviceAccountPath));
+        }
+        else {
             throw new Error(
-                'FIREBASE_SERVICE_ACCOUNT_PATH not found in .env\n' +
-                'Please add: FIREBASE_SERVICE_ACCOUNT_PATH=./firebase-service-account.json'
+                'Firebase credentials not found!\n' +
+                'For local: Add FIREBASE_SERVICE_ACCOUNT_PATH=./firebase-service-account.json\n' +
+                'For Vercel: Add FIREBASE_SERVICE_ACCOUNT={...json...}'
             );
         }
-
-        // Load service account
-        const serviceAccount = require(path.resolve(serviceAccountPath));
 
         // Initialize Firebase Admin
         firebaseApp = admin.initializeApp({

@@ -58,13 +58,20 @@ export function standardizeGroupName(groupName) {
 export function abbreviateTeacherName(fullName) {
     if (!fullName) return '';
 
-    // Remove titles (Mgr., Ing., Bc., Ph.D., etc.)
-    const withoutTitles = fullName.replace(/^(Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.)\s*/gi, '')
-                                   .replace(/,?\s*(Ph\.D\.|CSc\.)$/gi, '')
-                                   .trim();
+    // Remove titles from the beginning - handle multiple titles (e.g., "Ing. Bc.")
+    let withoutTitles = fullName;
+
+    // Remove all title combinations from the beginning
+    withoutTitles = withoutTitles.replace(/^(Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.)+\s*/gi, '');
+
+    // Remove titles from the end
+    withoutTitles = withoutTitles.replace(/,?\s*(Ph\.D\.|CSc\.)$/gi, '').trim();
+
+    // DEBUG log
+    console.log(`[abbreviateTeacherName] Input: "${fullName}" -> Without titles: "${withoutTitles}"`);
 
     // Split by spaces to get name parts
-    const parts = withoutTitles.split(/\s+/);
+    const parts = withoutTitles.split(/\s+/).filter(p => p.length > 0);
 
     if (parts.length === 0) return '';
 
@@ -77,7 +84,10 @@ export function abbreviateTeacherName(fullName) {
     const firstInitial = parts[0][0];
     const lastInitial = parts[parts.length - 1][0];
 
-    return (firstInitial + lastInitial).toUpperCase();
+    const result = (firstInitial + lastInitial).toUpperCase();
+    console.log(`[abbreviateTeacherName] Result: ${result} (from "${parts[0]}" and "${parts[parts.length - 1]}")`);
+
+    return result;
 }
 
 // Utility funkce pro získání dnešního dne (0-4 = Po-Pá)
@@ -152,6 +162,49 @@ export function showError(msg, errorDiv) {
     errorDiv.classList.remove('hidden');
 }
 
+// SVG ikony z Lucide pro různé typy změn
+export function getChangeIcon(changeType) {
+    const icons = {
+        'Suplování': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>`,
+
+        'Zrušeno': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`,
+
+        'Vyjmuto': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>`,
+
+        'Přednáška': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
+
+        'Spojení': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 6 4-4 4 4"/><path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22"/><path d="m20 22-5-5"/></svg>`,
+
+        'Default': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`
+    };
+
+    return icons[changeType] || icons['Default'];
+}
+
+// Určit typ změny a CSS třídu
+export function getChangeTypeInfo(changeType, changeInfoRaw) {
+    if (!changeType && !changeInfoRaw) {
+        return { type: 'obecna', icon: 'Default', header: 'Změna v rozvrhu' };
+    }
+
+    const type = (changeType || '').toLowerCase();
+    const rawLower = (changeInfoRaw || '').toLowerCase();
+
+    if (type.includes('suplování') || rawLower.includes('suplování')) {
+        return { type: 'suplovani', icon: 'Suplování', header: 'Suplování hodiny' };
+    } else if (type.includes('zrušeno') || rawLower.includes('zrušeno')) {
+        return { type: 'zruseno', icon: 'Zrušeno', header: 'Hodina byla zrušena' };
+    } else if (type.includes('vyjmuto') || rawLower.includes('vyjmuto')) {
+        return { type: 'vyjmuto', icon: 'Vyjmuto', header: 'Hodina byla vyjmuta z rozvrhu' };
+    } else if (type.includes('přednáška') || rawLower.includes('přednáška')) {
+        return { type: 'prednaska', icon: 'Přednáška', header: 'Přednáška' };
+    } else if (type.includes('spojen') || rawLower.includes('spojen')) {
+        return { type: 'spojeni', icon: 'Spojení', header: 'Spojení hodin' };
+    } else {
+        return { type: 'obecna', icon: 'Default', header: 'Změna v rozvrhu' };
+    }
+}
+
 // Parse change info to make it more understandable
 // Examples:
 // - "Suplování: CJL, Lichtágová Denisa (ZP, VT)"
@@ -169,6 +222,41 @@ export function parseChangeInfo(changeInfoRaw) {
         formatted: changeInfoRaw
     };
 
+    // Check for removed/vyjmuto patterns with subject and teacher: "Vyjmuto z rozvrhu (PŘEDMĚT, UČITEL)"
+    const removedMatch = changeInfoRaw.match(/^(Vyjmuto z rozvrhu|Zrušeno)\s*\(([^,]+),\s*([^)]+)\)/i);
+    if (removedMatch) {
+        result.type = removedMatch[1].trim();  // "Vyjmuto z rozvrhu" nebo "Zrušeno"
+        const subject = removedMatch[2].trim();
+        const teacher = removedMatch[3].trim();
+
+        const lines = [];
+        lines.push(`<div class="change-detail"><span class="change-label">Předmět:</span> <span class="change-value">${subject}</span></div>`);
+        lines.push(`<div class="change-detail"><span class="change-label">Učitel:</span> <span class="change-value">${teacher}</span></div>`);
+
+        result.formatted = lines.join('');
+        return result;
+    }
+
+    // Check for absent patterns: "přednáška (PŘED)" or just the name
+    const absentMatch = changeInfoRaw.match(/^([^(]+)\s*\(([^)]+)\)$/);
+    if (absentMatch) {
+        const reason = absentMatch[1].trim();
+        const code = absentMatch[2].trim();
+
+        // Only handle if it looks like an absence reason
+        if (reason.toLowerCase().includes('přednáška') || reason.toLowerCase().includes('absence') ||
+            code.match(/^[A-Z]{2,5}$/)) {  // Code like "PŘED", "ABS", etc.
+            const lines = [];
+            lines.push(`<div class="change-detail"><span class="change-value">${reason}</span></div>`);
+            if (code && code !== reason) {
+                lines.push(`<div class="change-detail"><span class="change-label">Kód:</span> <span class="change-value">${code}</span></div>`);
+            }
+
+            result.formatted = lines.join('');
+            return result;
+        }
+    }
+
     // Check for cancellation/removal patterns: "Zrušeno - Důvod" or "Vyjmuto - Důvod"
     const cancelMatch = changeInfoRaw.match(/^(Zrušeno|Vyjmuto)(?:\s*-\s*(.+))?$/i);
     if (cancelMatch) {
@@ -176,15 +264,12 @@ export function parseChangeInfo(changeInfoRaw) {
         result.reason = cancelMatch[2] ? cancelMatch[2].trim() : null;
 
         const lines = [];
-        const icon = result.type.toLowerCase() === 'zrušeno' ? '❌' : '🚫';
 
         if (result.reason) {
-            lines.push(`${icon} ${result.type}: ${result.reason}`);
-        } else {
-            lines.push(`${icon} ${result.type}`);
+            lines.push(`<div class="change-detail"><span class="change-label">Důvod:</span> <span class="change-value">${result.reason}</span></div>`);
         }
 
-        result.formatted = lines.join('\n');
+        result.formatted = lines.join('');
         return result;
     }
 
@@ -201,33 +286,31 @@ export function parseChangeInfo(changeInfoRaw) {
         const lines = [];
 
         if (result.type === 'Suplování') {
-            lines.push(`🔄 ${result.type}`);
-            lines.push(`📚 Nahrazující předmět: ${result.newSubject}`);
-            lines.push(`👨‍🏫 Suplující učitel: ${result.newTeacher}`);
+            lines.push(`<div class="change-detail"><span class="change-label">Nahrazující předmět:</span> <span class="change-value">${result.newSubject}</span></div>`);
+            lines.push(`<div class="change-detail"><span class="change-label">Suplující učitel:</span> <span class="change-value">${result.newTeacher}</span></div>`);
 
             // Original info could be "subject, teacher" or just "subject"
             const origParts = result.originalInfo.split(',').map(p => p.trim());
             if (origParts.length === 2) {
-                lines.push(`📋 Původně: ${origParts[0]} (${origParts[1]})`);
+                lines.push(`<div class="change-detail"><span class="change-label">Původně:</span> <span class="change-value">${origParts[0]} (${origParts[1]})</span></div>`);
             } else {
-                lines.push(`📋 Původně: ${result.originalInfo}`);
+                lines.push(`<div class="change-detail"><span class="change-label">Původně:</span> <span class="change-value">${result.originalInfo}</span></div>`);
             }
         } else {
-            lines.push(`ℹ️ ${result.type}`);
-            lines.push(`Nové: ${result.newSubject} - ${result.newTeacher}`);
-            lines.push(`Původně: ${result.originalInfo}`);
+            lines.push(`<div class="change-detail"><span class="change-label">Nové:</span> <span class="change-value">${result.newSubject} - ${result.newTeacher}</span></div>`);
+            lines.push(`<div class="change-detail"><span class="change-label">Původně:</span> <span class="change-value">${result.originalInfo}</span></div>`);
         }
 
-        result.formatted = lines.join('\n');
+        result.formatted = lines.join('');
     } else {
         // Check if it's just a date (DD.MM.YYYY or similar)
         const dateMatch = changeInfoRaw.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/);
         if (dateMatch) {
             // Don't show just a date, show it as "Změněno"
-            result.formatted = `ℹ️ Změněno (${changeInfoRaw})`;
+            result.formatted = `<div class="change-detail"><span class="change-value">Změněno (${changeInfoRaw})</span></div>`;
         } else {
             // Fallback for other formats
-            result.formatted = `ℹ️ ${changeInfoRaw}`;
+            result.formatted = `<div class="change-detail"><span class="change-value">${changeInfoRaw}</span></div>`;
         }
     }
 

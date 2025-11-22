@@ -198,6 +198,10 @@ export function renderTimetable(data) {
                     let cardClass = 'lesson-card';
                     if (lesson.changed) cardClass += ' changed';
 
+                    // Add specific classes for removed/absent lessons
+                    if (lesson.type === 'removed') cardClass += ' removed';
+                    if (lesson.type === 'absent') cardClass += ' absent';
+
                     // Zvýraznění aktuální hodiny
                     if (dayIndex === todayIndex && hour === currentHour) {
                         cardClass += ' current-time';

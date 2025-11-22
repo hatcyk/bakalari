@@ -171,31 +171,119 @@
 
 .modal-changes {
     margin-top: 20px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.modal-changes-container {
+    display: flex;
+    gap: 14px;
     padding: 16px;
-    background: hsla(38, 92%, 55%, 0.1);
-    border-left: 4px solid var(--changed-color);
+    background: var(--accent-light);
+    border: 1.5px solid var(--border-light);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.modal-changes-container:hover {
+    background: var(--accent-medium);
+    border-color: var(--accent);
+}
+
+/* Icon container - bude mít dynamickou barvu */
+.modal-changes-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 10px;
+    background: var(--change-icon-bg, rgba(59, 130, 246, 0.15));
+    color: var(--change-icon-color, #3b82f6);
+}
+
+.modal-changes-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2.5;
+}
+
+/* Body section */
+.modal-changes-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .modal-changes-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 700;
-    color: var(--changed-color);
-    margin-bottom: 12px;
+    color: var(--change-header-color, #3b82f6);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
 .modal-changes-content {
     font-size: 0.95rem;
     color: var(--text-main);
-    line-height: 1.8;
-    white-space: pre-line;
+    line-height: 1.6;
 }
 
-.modal-changes-content br {
+.modal-changes-content .change-detail {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
     margin: 4px 0;
+}
+
+.modal-changes-content .change-label {
+    font-weight: 600;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+}
+
+.modal-changes-content .change-value {
+    color: var(--text-main);
+}
+
+/* Varianty podle typu změny */
+.modal-changes.type-suplovani {
+    --change-icon-bg: rgba(59, 130, 246, 0.15);
+    --change-icon-color: #3b82f6;
+    --change-header-color: #3b82f6;
+}
+
+.modal-changes.type-zruseno {
+    --change-icon-bg: rgba(239, 68, 68, 0.15);
+    --change-icon-color: #ef4444;
+    --change-header-color: #ef4444;
+}
+
+.modal-changes.type-vyjmuto {
+    --change-icon-bg: rgba(249, 115, 22, 0.15);
+    --change-icon-color: #f97316;
+    --change-header-color: #f97316;
+}
+
+.modal-changes.type-prednaska {
+    --change-icon-bg: rgba(168, 85, 247, 0.15);
+    --change-icon-color: #a855f7;
+    --change-header-color: #a855f7;
+}
+
+.modal-changes.type-spojeni {
+    --change-icon-bg: rgba(20, 184, 166, 0.15);
+    --change-icon-color: #14b8a6;
+    --change-header-color: #14b8a6;
+}
+
+.modal-changes.type-obecna {
+    --change-icon-bg: rgba(107, 114, 128, 0.15);
+    --change-icon-color: #6b7280;
+    --change-header-color: #6b7280;
 }

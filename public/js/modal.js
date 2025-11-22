@@ -2,7 +2,7 @@ import { dom } from './dom.js';
 import { days, lessonTimes } from './constants.js';
 import { state, updateState } from './state.js';
 import { loadTimetable, populateValueSelect } from './timetable.js';
-import { parseChangeInfo } from './utils.js';
+import { parseChangeInfo, getChangeIcon, getChangeTypeInfo } from './utils.js';
 import { setDropdownValue } from './dropdown.js';
 
 // Modal functions
@@ -78,6 +78,8 @@ export function showLessonModal(lesson) {
     // Set changes (if exists)
     const modalChanges = document.getElementById('modalChanges');
     const modalChangesContent = document.getElementById('modalChangesContent');
+    const modalChangesIcon = document.getElementById('modalChangesIcon');
+    const modalChangesHeader = document.getElementById('modalChangesHeader');
 
     if (lesson.changed && lesson.changeInfo) {
         modalChanges.classList.remove('hidden');
@@ -85,15 +87,40 @@ export function showLessonModal(lesson) {
         // Parse change info for better understanding
         const parsed = parseChangeInfo(lesson.changeInfo.description);
 
+        // Determine change type and get appropriate icon
+        const typeInfo = getChangeTypeInfo(parsed?.type, lesson.changeInfo.description);
+        const iconSvg = getChangeIcon(typeInfo.icon);
+
+        // Set icon
+        modalChangesIcon.innerHTML = iconSvg;
+
+        // Set header
+        modalChangesHeader.textContent = typeInfo.header;
+
+        // Remove all type-* classes first
+        modalChanges.className = 'modal-changes';
+
+        // Add appropriate type class
+        modalChanges.classList.add(`type-${typeInfo.type}`);
+
+        // Set content
         if (parsed && parsed.formatted) {
-            // Display formatted change info with line breaks
-            modalChangesContent.innerHTML = parsed.formatted.replace(/\n/g, '<br>');
+            modalChangesContent.innerHTML = parsed.formatted;
         } else {
-            modalChangesContent.textContent = lesson.changeInfo.description || 'Tato hodina byla změněna oproti stálému rozvrhu.';
+            modalChangesContent.innerHTML = '<div class="change-detail"><span class="change-value">Tato hodina byla změněna oproti stálému rozvrhu.</span></div>';
         }
     } else if (lesson.changed) {
         modalChanges.classList.remove('hidden');
-        modalChangesContent.textContent = 'Tato hodina byla změněna oproti stálému rozvrhu.';
+
+        // Default generic change
+        const typeInfo = getChangeTypeInfo(null, null);
+        const iconSvg = getChangeIcon(typeInfo.icon);
+
+        modalChangesIcon.innerHTML = iconSvg;
+        modalChangesHeader.textContent = typeInfo.header;
+        modalChanges.className = 'modal-changes';
+        modalChanges.classList.add(`type-${typeInfo.type}`);
+        modalChangesContent.innerHTML = '<div class="change-detail"><span class="change-value">Tato hodina byla změněna oproti stálému rozvrhu.</span></div>';
     } else {
         modalChanges.classList.add('hidden');
     }

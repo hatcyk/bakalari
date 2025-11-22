@@ -6,6 +6,7 @@
     box-shadow: 0 2px 12px var(--shadow);
     scrollbar-width: thin;
     scrollbar-color: var(--accent) var(--border);
+    transition: background var(--theme-transition), border-color var(--theme-transition), box-shadow var(--theme-transition);
 }
 
 .timetable-container::-webkit-scrollbar {
@@ -36,6 +37,7 @@
 .timetable-header {
     display: table-row;
     background: var(--header-bg);
+    transition: background var(--theme-transition);
 }
 
 .timetable-header-cell {
@@ -51,7 +53,7 @@
     top: 0;
     background: var(--header-bg);
     z-index: 10;
-    transition: all 0.2s ease;
+    transition: background var(--theme-transition), border-color var(--theme-transition), color var(--theme-transition);
 }
 
 .timetable-header-cell:first-child {
@@ -73,6 +75,7 @@
     justify-content: center;
     gap: 4px;
     color: var(--text-main);
+    transition: color var(--theme-transition);
 }
 
 .today-badge {
@@ -105,6 +108,7 @@
     background: var(--header-bg);
     vertical-align: middle;
     width: 60px;
+    transition: background var(--theme-transition), border-color var(--theme-transition);
 }
 
 .lesson-cell {
@@ -116,6 +120,7 @@
     vertical-align: top;
     min-width: 160px;
     height: 120px;
+    transition: border-color var(--theme-transition);
 }
 
 /* Center single lesson card when there's only one */
@@ -165,6 +170,7 @@
 .empty-lesson-cell {
     background: var(--card-bg);
     position: relative;
+    transition: background var(--theme-transition);
 }
 
 /* Subtle pattern for empty cells */
@@ -227,7 +233,7 @@
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background var(--theme-transition), color var(--theme-transition), border-color 0.2s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }

@@ -5,7 +5,7 @@
     border-left: 4px solid var(--accent);
     border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
+    transition: background var(--theme-transition), border-color var(--theme-transition), box-shadow var(--theme-transition), transform 0.2s ease;
     position: relative;
     min-height: 60px;
     display: flex;
@@ -132,6 +132,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color var(--theme-transition);
 }
 
 .lesson-details {
@@ -140,6 +141,7 @@
     font-size: 0.75rem;
     color: var(--text-dim);
     gap: 1px;
+    transition: color var(--theme-transition);
 }
 
 .lesson-group {

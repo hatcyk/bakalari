@@ -11,7 +11,7 @@ body {
     color: var(--text-main);
     min-height: 100vh;
     overflow-x: hidden;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color var(--theme-transition), color var(--theme-transition);
 }
 
 .app-container {

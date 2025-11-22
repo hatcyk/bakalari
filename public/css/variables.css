@@ -1,4 +1,7 @@
 :root {
+    /* Transition timing for theme switching */
+    --theme-transition: 0.3s ease;
+
     /* SPŠD Dark Theme - Official Brand Colors */
     --bg-color: hsl(210, 65%, 8%);
     --card-bg: hsl(208, 50%, 12%);
@@ -39,6 +42,9 @@
     --group-1: #002B4F;
     --group-2: #EB5D43;
     --group-badge-bg: rgba(0, 43, 79, 0.15);
+
+    /* Loader */
+    --loader-bg: rgba(16, 17, 26, 0.95);
 }
 
 [data-theme="light"] {
@@ -82,4 +88,7 @@
     --group-1: #002B4F;
     --group-2: #EB5D43;
     --group-badge-bg: rgba(0, 43, 79, 0.12);
+
+    /* Loader */
+    --loader-bg: rgba(255, 255, 255, 0.95);
 }

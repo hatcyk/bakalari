@@ -6,6 +6,7 @@ import { loadTimetable, populateValueSelect, createDaySelector } from './timetab
 import { fetchDefinitions } from './api.js';
 import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } from './dropdown.js';
 import { buildTeacherAbbreviationMap } from './utils.js';
+import { initSunData } from './suntime.js';
 
 // Type button handlers
 function updateTypeButtons() {
@@ -76,6 +77,9 @@ async function init() {
         // Initialize theme
         initTheme();
         initThemeToggle();
+
+        // Initialize sun data (async, doesn't block)
+        initSunData().catch(err => console.error('Failed to load sun data:', err));
 
         // Initialize modal listeners with error handling
         initModalListeners();

@@ -2,3 +2,8 @@ node_modules/
 package-lock.json
 debug_output/
 .env
+
+# Firebase credentials
+firebase-service-account.json
+**/firebase-service-account.json
+.firebase/

@@ -7,8 +7,13 @@ const path = require('path'); // <--- DŮLEŽITÉ: Toto musí být nahoře
 const os = require('os'); // Pro získání IP adresy
 const fs = require('fs'); // Pro zápis do souborů
 
+// Firebase and cron imports
+const { createCustomToken } = require('./backend/firebase-admin-init');
+const { startCronJob, triggerManualPrefetch, getCronStatus } = require('./backend/cron');
+
 const app = express();
 app.use(cors());
+app.use(express.json()); // For parsing JSON request bodies
 
 // Set proper MIME types for JavaScript modules
 app.use((req, res, next) => {
@@ -242,6 +247,40 @@ app.get('/api/definitions', async (req, res) => {
     }
 });
 
+// === FIREBASE AUTH ENDPOINT ===
+app.post('/api/auth', async (req, res) => {
+    try {
+        // Generate anonymous user ID (you can make this more sophisticated)
+        const userId = req.body.userId || 'anonymous-' + Date.now();
+
+        // Create custom token
+        const token = await createCustomToken(userId);
+
+        res.json({ token, userId });
+    } catch (error) {
+        console.error('Auth error:', error);
+        res.status(500).json({ error: 'Failed to generate auth token' });
+    }
+});
+
+// === MANUAL PREFETCH TRIGGER (for testing) ===
+app.post('/api/prefetch/trigger', async (req, res) => {
+    try {
+        console.log('Manual prefetch triggered via API');
+        // Don't await - let it run in background
+        triggerManualPrefetch().catch(err => console.error('Manual prefetch error:', err));
+        res.json({ message: 'Prefetch started in background', status: 'running' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// === CRON STATUS ENDPOINT ===
+app.get('/api/prefetch/status', (req, res) => {
+    const status = getCronStatus();
+    res.json(status);
+});
+
 // Funkce pro získání lokální IP adresy
 function getLocalIP() {
     const interfaces = os.networkInterfaces();
@@ -262,4 +301,8 @@ app.listen(PORT, HOST, () => {
     const localIP = getLocalIP();
     console.log(`http://localhost:${PORT}`);
     console.log(`http://${localIP}:${PORT}`);
+
+    // Start cron job for automatic prefetching
+    console.log('\n🔄 Starting automatic prefetch cron job...');
+    startCronJob();
 });

@@ -7,19 +7,7 @@ import { fetchDefinitions } from './api.js';
 import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } from './dropdown.js';
 import { buildTeacherAbbreviationMap } from './utils.js';
 import { initSunData } from './suntime.js';
-
-// Offline banner handler
-function initOfflineBanner() {
-    window.addEventListener('offlineModeChange', (event) => {
-        if (!dom.offlineBanner) return;
-
-        if (event.detail.offline) {
-            dom.offlineBanner.classList.remove('hidden');
-        } else {
-            dom.offlineBanner.classList.add('hidden');
-        }
-    });
-}
+import { initializeFirebase, authenticateWithFirebase } from './firebase-client.js';
 
 // Type button handlers
 function updateTypeButtons() {
@@ -91,14 +79,17 @@ async function init() {
         initTheme();
         initThemeToggle();
 
+        // Initialize Firebase
+        console.log('Initializing Firebase...');
+        await initializeFirebase(window.firebaseConfig);
+        await authenticateWithFirebase();
+        console.log('Firebase ready!');
+
         // Initialize sun data (async, doesn't block)
         initSunData().catch(err => console.error('Failed to load sun data:', err));
 
         // Initialize modal listeners with error handling
         initModalListeners();
-
-        // Initialize offline banner
-        initOfflineBanner();
 
         // Initialize custom dropdown
         initCustomDropdown(loadTimetable);

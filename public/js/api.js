@@ -1,58 +1,72 @@
-// API functions
-import { setCache, getCache, getCacheEvenExpired, TTL } from './cache.js';
+/**
+ * API Layer - reads from Firebase instead of Bakalari API directly
+ */
 
-// Global state for offline mode
-let isOfflineMode = false;
+import { fetchDefinitionsFromFirebase, fetchTimetableFromFirebase } from './firebase-client.js';
 
-export function setOfflineMode(offline) {
-    isOfflineMode = offline;
-    // Dispatch event for UI updates
-    window.dispatchEvent(new CustomEvent('offlineModeChange', { detail: { offline } }));
-}
+// Session cache for faster repeated access
+const sessionCache = {
+    definitions: null,
+    timetables: new Map(),
+};
 
-export function getOfflineMode() {
-    return isOfflineMode;
-}
-
+/**
+ * Fetch definitions (classes, teachers, rooms) from Firebase
+ */
 export async function fetchDefinitions() {
-    const CACHE_KEY = 'definitions';
-
-    // Try to get fresh cache first
-    const cachedData = getCache(CACHE_KEY);
-    if (cachedData) {
-        console.log('Using cached definitions (fresh)');
-        setOfflineMode(false);
-        return cachedData;
+    // Check session cache first
+    if (sessionCache.definitions) {
+        console.log('Using session-cached definitions');
+        return sessionCache.definitions;
     }
 
-    // Try to fetch from API
     try {
-        const res = await fetch('/api/definitions');
-        const data = await res.json();
+        const definitions = await fetchDefinitionsFromFirebase();
 
-        // Save to cache
-        setCache(CACHE_KEY, data, TTL.DEFINITIONS);
-        console.log('Fetched definitions from API and cached');
-        setOfflineMode(false);
+        // Cache in session
+        sessionCache.definitions = definitions;
+
+        console.log(`Loaded definitions from Firebase: ${definitions.classes.length} classes, ${definitions.teachers.length} teachers, ${definitions.rooms.length} rooms`);
+
+        return definitions;
+    } catch (error) {
+        console.error('Failed to fetch definitions:', error);
+        throw new Error('Nepodařilo se načíst seznamy z Firebase');
+    }
+}
+
+/**
+ * Fetch timetable from Firebase
+ */
+export async function fetchTimetable(type, id, scheduleType, date = null) {
+    const cacheKey = `${type}_${id}_${scheduleType}_${date || 'current'}`;
+
+    // Check session cache first
+    if (sessionCache.timetables.has(cacheKey)) {
+        console.log(`Using session-cached timetable: ${cacheKey}`);
+        return sessionCache.timetables.get(cacheKey);
+    }
+
+    try {
+        // Note: Firebase stores data by scheduleType (Actual/Permanent/Next),
+        // not by date. The backend prefetches all schedule types.
+        const data = await fetchTimetableFromFirebase(type, id, scheduleType);
+
+        // Cache in session
+        sessionCache.timetables.set(cacheKey, data);
+
+        console.log(`Loaded timetable from Firebase: ${cacheKey} (${data.length} lessons)`);
 
         return data;
     } catch (error) {
-        console.warn('Failed to fetch definitions from API:', error);
-
-        // Try to use expired cache as fallback
-        const expiredCache = getCacheEvenExpired(CACHE_KEY);
-        if (expiredCache) {
-            console.log('Using cached definitions (expired, offline mode)');
-            setOfflineMode(true);
-            return expiredCache;
-        }
-
-        // No cache available at all
-        setOfflineMode(false);
-        throw new Error('Nepodařilo se načíst seznamy. Běží backend?');
+        console.error(`Failed to fetch timetable:`, error);
+        throw error;
     }
 }
 
+/**
+ * Fetch sunrise/sunset data (kept as-is, not affected by Firebase migration)
+ */
 export async function fetchSunriseSunset(lat, lng) {
     try {
         const res = await fetch(`https://api.sunrisesunset.io/json?lat=${lat}&lng=${lng}`);
@@ -74,52 +88,11 @@ export async function fetchSunriseSunset(lat, lng) {
     }
 }
 
-export async function fetchTimetable(type, id, scheduleType, date) {
-    const CACHE_KEY = `timetable_${type}_${id}_${scheduleType}_${date || 'current'}`;
-
-    // Try to get fresh cache first
-    const cachedData = getCache(CACHE_KEY);
-    if (cachedData) {
-        console.log(`Using cached timetable (fresh): ${CACHE_KEY}`);
-        setOfflineMode(false);
-        return cachedData;
-    }
-
-    // Try to fetch from API
-    try {
-        let url = `/api/timetable?type=${type}&id=${id}&schedule=${scheduleType}`;
-        if (date) {
-            url += `&date=${date}`;
-        }
-
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Chyba serveru");
-
-        const data = await res.json();
-
-        if (data.error) {
-            throw new Error(data.error);
-        }
-
-        // Save to cache
-        setCache(CACHE_KEY, data, TTL.TIMETABLE);
-        console.log(`Fetched timetable from API and cached: ${CACHE_KEY}`);
-        setOfflineMode(false);
-
-        return data;
-    } catch (error) {
-        console.warn('Failed to fetch timetable from API:', error);
-
-        // Try to use expired cache as fallback
-        const expiredCache = getCacheEvenExpired(CACHE_KEY);
-        if (expiredCache) {
-            console.log(`Using cached timetable (expired, offline mode): ${CACHE_KEY}`);
-            setOfflineMode(true);
-            return expiredCache;
-        }
-
-        // No cache available at all
-        setOfflineMode(false);
-        throw error;
-    }
+/**
+ * Clear session cache (useful for forcing refresh)
+ */
+export function clearSessionCache() {
+    sessionCache.definitions = null;
+    sessionCache.timetables.clear();
+    console.log('Session cache cleared');
 }

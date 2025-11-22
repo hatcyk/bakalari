@@ -67,7 +67,10 @@ export function openDropdown() {
 
     // Focus search input if it exists
     if (searchInput) {
-        setTimeout(() => searchInput.focus(), 100);
+        // Use a small timeout to ensure the element is visible before focusing
+        setTimeout(() => {
+            searchInput.focus();
+        }, 0);
     }
 }
 

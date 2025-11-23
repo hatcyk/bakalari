@@ -255,6 +255,9 @@ function updateNotificationModalContent() {
         }
     }
 
+    // Populate timetable selection list
+    populateWatchedTimetablesList();
+
     // Load watched timetables
     loadWatchedTimetables();
 }
@@ -278,6 +281,142 @@ export async function toggleNotifications() {
         } else {
             alert('Nepodařilo se zapnout notifikace: ' + error.message);
         }
+    }
+}
+
+/**
+ * Populate the timetables selection list with all available options
+ */
+function populateWatchedTimetablesList() {
+    if (!dom.watchedTimetablesList || !state.definitions) return;
+
+    const scheduleTypes = [
+        { value: 'Actual', label: 'Aktuální' },
+        { value: 'Permanent', label: 'Stálý' },
+        { value: 'Next', label: 'Příští' }
+    ];
+
+    let html = '';
+
+    // Add Classes section
+    if (state.definitions.classes && state.definitions.classes.length > 0) {
+        html += '<div class="timetable-category"><h4>Třídy</h4>';
+
+        state.definitions.classes.forEach(item => {
+            scheduleTypes.forEach(schedule => {
+                const id = `watch_Class_${item.id}_${schedule.value}`;
+                html += `
+                    <label class="watched-timetable-item">
+                        <input type="checkbox"
+                               id="${id}"
+                               data-type="Class"
+                               data-id="${item.id}"
+                               data-name="${item.name}"
+                               data-schedule-type="${schedule.value}">
+                        <span>${item.name} - ${schedule.label}</span>
+                    </label>
+                `;
+            });
+        });
+
+        html += '</div>';
+    }
+
+    // Add Teachers section
+    if (state.definitions.teachers && state.definitions.teachers.length > 0) {
+        html += '<div class="timetable-category"><h4>Učitelé</h4>';
+
+        state.definitions.teachers.forEach(item => {
+            scheduleTypes.forEach(schedule => {
+                const id = `watch_Teacher_${item.id}_${schedule.value}`;
+                html += `
+                    <label class="watched-timetable-item">
+                        <input type="checkbox"
+                               id="${id}"
+                               data-type="Teacher"
+                               data-id="${item.id}"
+                               data-name="${item.name}"
+                               data-schedule-type="${schedule.value}">
+                        <span>${item.name} - ${schedule.label}</span>
+                    </label>
+                `;
+            });
+        });
+
+        html += '</div>';
+    }
+
+    // Add Rooms section
+    if (state.definitions.rooms && state.definitions.rooms.length > 0) {
+        html += '<div class="timetable-category"><h4>Místnosti</h4>';
+
+        state.definitions.rooms.forEach(item => {
+            scheduleTypes.forEach(schedule => {
+                const id = `watch_Room_${item.id}_${schedule.value}`;
+                html += `
+                    <label class="watched-timetable-item">
+                        <input type="checkbox"
+                               id="${id}"
+                               data-type="Room"
+                               data-id="${item.id}"
+                               data-name="${item.name}"
+                               data-schedule-type="${schedule.value}">
+                        <span>${item.name} - ${schedule.label}</span>
+                    </label>
+                `;
+            });
+        });
+
+        html += '</div>';
+    }
+
+    dom.watchedTimetablesList.innerHTML = html;
+
+    // Add event listeners to all checkboxes
+    const checkboxes = dom.watchedTimetablesList.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', handleWatchedTimetableChange);
+    });
+}
+
+/**
+ * Handle checkbox change for watched timetables
+ */
+async function handleWatchedTimetableChange(event) {
+    const checkbox = event.target;
+    const type = checkbox.dataset.type;
+    const id = checkbox.dataset.id;
+    const name = checkbox.dataset.name;
+    const scheduleType = checkbox.dataset.scheduleType;
+
+    const timetableEntry = { type, id, name, scheduleType };
+
+    let watchedTimetables = [...state.watchedTimetables];
+
+    if (checkbox.checked) {
+        // Add to watched list
+        const exists = watchedTimetables.some(t =>
+            t.type === type && t.id === id && t.scheduleType === scheduleType
+        );
+
+        if (!exists) {
+            watchedTimetables.push(timetableEntry);
+        }
+    } else {
+        // Remove from watched list
+        watchedTimetables = watchedTimetables.filter(t =>
+            !(t.type === type && t.id === id && t.scheduleType === scheduleType)
+        );
+    }
+
+    // Save to server
+    try {
+        await saveWatchedTimetables(watchedTimetables);
+        console.log('Watched timetables updated:', watchedTimetables);
+    } catch (error) {
+        console.error('Failed to save watched timetables:', error);
+        // Revert checkbox state on error
+        checkbox.checked = !checkbox.checked;
     }
 }
 

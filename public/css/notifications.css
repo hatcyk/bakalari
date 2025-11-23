@@ -98,19 +98,34 @@
 .watched-timetables-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.timetable-category {
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+}
+
+.timetable-category h4 {
+    font-size: 0.95em;
+    margin-bottom: 8px;
+    color: var(--accent);
+    font-weight: 600;
 }
 
 .watched-timetable-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px;
+    padding: 8px 12px;
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
+    margin-bottom: 6px;
 }
 
 .watched-timetable-item:hover {

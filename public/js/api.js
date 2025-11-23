@@ -69,12 +69,20 @@ export async function fetchTimetable(type, id, scheduleType, date = null) {
  */
 export async function fetchSunriseSunset(lat, lng) {
     try {
-        const res = await fetch(`https://api.sunrisesunset.io/json?lat=${lat}&lng=${lng}`);
+        // Add timezone parameter to get times in Europe/Prague timezone
+        const res = await fetch(`https://api.sunrisesunset.io/json?lat=${lat}&lng=${lng}&timezone=Europe/Prague`);
         const data = await res.json();
 
         if (data.status !== 'OK') {
             throw new Error('Failed to fetch sunrise/sunset data');
         }
+
+        console.log('Sunrise/Sunset data for Prague:', {
+            sunrise: data.results.sunrise,
+            sunset: data.results.sunset,
+            dawn: data.results.dawn,
+            dusk: data.results.dusk
+        });
 
         return {
             sunrise: data.results.sunrise,

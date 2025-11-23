@@ -213,9 +213,9 @@
     opacity: 0.7;
 }
 
-/* DAY SELECTOR (MOBILE) */
+/* DAY SELECTOR (MOBILE ONLY) */
 .day-selector {
-    display: none;
+    display: none !important; /* Hidden by default on desktop */
     margin-bottom: 16px;
     gap: 8px;
     flex-wrap: wrap;

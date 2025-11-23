@@ -60,7 +60,7 @@
         padding: 3px;
     }
 
-    /* Flex row for dropdown + theme toggle */
+    /* Flex row for dropdown + week toggle + theme toggle */
     .dropdown-row {
         display: flex;
         gap: 8px;
@@ -71,6 +71,41 @@
     .custom-dropdown {
         flex: 1;
         min-width: 0;
+    }
+
+    /* Week view toggle button (mobile only) */
+    .week-view-toggle {
+        display: none;
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        background: var(--card-bg);
+        color: var(--text-main);
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .week-view-toggle.mobile-only {
+        display: flex;
+    }
+
+    .week-view-toggle:hover {
+        border-color: var(--accent);
+    }
+
+    .week-view-toggle.active {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+    }
+
+    .week-view-toggle svg {
+        flex-shrink: 0;
     }
 
     /* Theme toggle inline (not absolute) */
@@ -123,7 +158,9 @@
 
     .timetable-container {
         overflow-x: auto;
+        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        max-height: calc(100vh - 350px);
     }
 
     .timetable-row {
@@ -132,6 +169,12 @@
 
     .timetable-row.active {
         display: table-row;
+    }
+
+    /* When showing whole week, reduce row height for better fit */
+    .week-view-toggle.active ~ .timetable-container .timetable-row {
+        height: auto;
+        min-height: 100px;
     }
 
     .hour-cell {

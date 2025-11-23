@@ -37,6 +37,26 @@ export function populateValueSelect() {
     populateDropdown(items);
 }
 
+// Initialize week view toggle button
+export function initWeekViewToggle() {
+    if (!dom.weekViewToggle) return;
+
+    dom.weekViewToggle.addEventListener('click', () => {
+        // Toggle the state
+        updateState('showWholeWeek', !state.showWholeWeek);
+
+        // Update button appearance
+        if (state.showWholeWeek) {
+            dom.weekViewToggle.classList.add('active');
+        } else {
+            dom.weekViewToggle.classList.remove('active');
+        }
+
+        // Update the view
+        updateMobileDayView();
+    });
+}
+
 // Create day selector for mobile
 export function createDaySelector() {
     if (!dom.daySelector) return;
@@ -72,13 +92,28 @@ function selectDay(index) {
 // Update mobile day view
 function updateMobileDayView() {
     const rows = document.querySelectorAll('.timetable-row');
-    rows.forEach((row, index) => {
-        if (index === state.selectedDayIndex) {
-            row.classList.add('active');
-        } else {
-            row.classList.remove('active');
+
+    if (state.showWholeWeek) {
+        // Show all days when whole week view is active
+        rows.forEach(row => row.classList.add('active'));
+        // Hide day selector when showing whole week
+        if (dom.daySelector) {
+            dom.daySelector.style.display = 'none';
         }
-    });
+    } else {
+        // Show only selected day (original behavior)
+        rows.forEach((row, index) => {
+            if (index === state.selectedDayIndex) {
+                row.classList.add('active');
+            } else {
+                row.classList.remove('active');
+            }
+        });
+        // Show day selector when showing single day
+        if (dom.daySelector) {
+            dom.daySelector.style.display = 'flex';
+        }
+    }
 }
 
 // Render timetable

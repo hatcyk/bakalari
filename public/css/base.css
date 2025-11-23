@@ -141,3 +141,8 @@ footer {
 footer p {
     margin: 0;
 }
+
+/* Hide mobile-only elements on desktop */
+.mobile-only {
+    display: none;
+}

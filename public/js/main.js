@@ -2,10 +2,10 @@ import { initDOM, dom } from './dom.js';
 import { state, updateState } from './state.js';
 import { initTheme, initThemeToggle } from './theme.js';
 import { initModalListeners } from './modal.js';
-import { loadTimetable, populateValueSelect, createDaySelector } from './timetable.js';
+import { loadTimetable, populateValueSelect, createDaySelector, initWeekViewToggle } from './timetable.js';
 import { fetchDefinitions } from './api.js';
 import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } from './dropdown.js';
-import { buildTeacherAbbreviationMap } from './utils.js';
+import { buildTeacherAbbreviationMap, shouldAutoSwitchToNextWeek } from './utils.js';
 import { initSunData } from './suntime.js';
 import { initializeFirebase, authenticateWithFirebase } from './firebase-client.js';
 
@@ -108,10 +108,18 @@ async function init() {
         // Initialize event listeners
         initTypeButtons();
         initScheduleTypeButtons();
+        initWeekViewToggle();
 
         // Restore saved selection
         const savedType = localStorage.getItem('selectedType');
         const savedValue = localStorage.getItem('selectedValue');
+
+        // Check if we should auto-switch to next week (Friday afternoon)
+        if (shouldAutoSwitchToNextWeek() && state.selectedScheduleType === 'actual') {
+            console.log('Friday afternoon detected - auto-switching to next week');
+            updateState('selectedScheduleType', 'next');
+            updateScheduleTypeButtons();
+        }
 
         if (savedType && savedValue) {
             updateState('selectedType', savedType);

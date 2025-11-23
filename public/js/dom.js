@@ -14,7 +14,8 @@ export const dom = {
     daySelector: null,
     themeToggle: null,
     lessonModal: null,
-    modalClose: null
+    modalClose: null,
+    weekViewToggle: null
 };
 
 // Initialize DOM references
@@ -34,6 +35,7 @@ export function initDOM() {
     dom.themeToggle = document.getElementById('themeToggle');
     dom.lessonModal = document.getElementById('lessonModal');
     dom.modalClose = document.getElementById('modalClose');
+    dom.weekViewToggle = document.getElementById('weekViewToggle');
 
     // Check if modal elements exist
     if (!dom.lessonModal || !dom.modalClose) {

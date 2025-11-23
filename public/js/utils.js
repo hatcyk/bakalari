@@ -158,6 +158,16 @@ export function getTodayIndex() {
     return day === 0 || day === 6 ? -1 : day - 1; // Vrátí -1 pro víkend
 }
 
+// Check if we should auto-switch to next week (Friday afternoon)
+export function shouldAutoSwitchToNextWeek() {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sunday, 1=Monday, ..., 5=Friday
+    const hour = now.getHours();
+
+    // Check if it's Friday (5) and after 14:00 (2 PM)
+    return dayOfWeek === 5 && hour >= 14;
+}
+
 // Utility funkce pro získání aktuální hodiny (0-12)
 export function getCurrentHour() {
     const now = new Date();

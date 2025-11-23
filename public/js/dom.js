@@ -15,7 +15,13 @@ export const dom = {
     themeToggle: null,
     lessonModal: null,
     modalClose: null,
-    weekViewToggle: null
+    weekViewToggle: null,
+    notificationBell: null,
+    notificationModal: null,
+    notificationModalClose: null,
+    notificationToggle: null,
+    iosWarning: null,
+    watchedTimetablesList: null
 };
 
 // Initialize DOM references
@@ -36,6 +42,12 @@ export function initDOM() {
     dom.lessonModal = document.getElementById('lessonModal');
     dom.modalClose = document.getElementById('modalClose');
     dom.weekViewToggle = document.getElementById('weekViewToggle');
+    dom.notificationBell = document.getElementById('notificationBell');
+    dom.notificationModal = document.getElementById('notificationModal');
+    dom.notificationModalClose = document.getElementById('notificationModalClose');
+    dom.notificationToggle = document.getElementById('notificationToggle');
+    dom.iosWarning = document.getElementById('iosWarning');
+    dom.watchedTimetablesList = document.getElementById('watchedTimetablesList');
 
     // Check if modal elements exist
     if (!dom.lessonModal || !dom.modalClose) {

@@ -6,6 +6,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getFirestore } = require('./firebase-admin-init');
+const { detectTimetableChanges } = require('./change-detector');
 
 // Configuration
 const BAKALARI_BASE_URL = 'https://mot-spsd.bakalari.cz';
@@ -262,8 +263,38 @@ async function prefetchAllData() {
                     // Fetch timetable
                     const timetableData = await fetchTimetable(task.type, task.entity.id, task.scheduleType);
 
-                    // Store in Firestore
                     const docKey = `${task.type}_${task.entity.id}_${task.scheduleType}`;
+
+                    // Get previous snapshot for change detection
+                    const previousDoc = await db.collection('timetables').doc(docKey).get();
+                    const previousData = previousDoc.exists ? previousDoc.data().data : null;
+
+                    // Detect changes if previous snapshot exists
+                    if (previousData && previousData.length > 0) {
+                        const metadata = {
+                            type: task.type,
+                            id: task.entity.id,
+                            name: task.entity.name,
+                            scheduleType: task.scheduleType
+                        };
+
+                        const changes = detectTimetableChanges(previousData, timetableData, metadata);
+
+                        // Store detected changes
+                        if (changes.length > 0) {
+                            const changeId = `${docKey}_${Date.now()}`;
+                            await db.collection('changes').doc(changeId).set({
+                                timetable: metadata,
+                                changes: changes,
+                                timestamp: new Date().toISOString(),
+                                sent: false
+                            });
+
+                            console.log(`${progress} 🔔 ${changes.length} changes detected for ${task.entity.name}`);
+                        }
+                    }
+
+                    // Store new timetable in Firestore
                     await db.collection('timetables').doc(docKey).set({
                         type: task.type,
                         id: task.entity.id,

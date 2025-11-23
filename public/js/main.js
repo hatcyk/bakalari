@@ -8,6 +8,7 @@ import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } 
 import { buildTeacherAbbreviationMap, shouldAutoSwitchToNextWeek } from './utils.js';
 import { initSunData } from './suntime.js';
 import { initializeFirebase, authenticateWithFirebase } from './firebase-client.js';
+import { registerServiceWorker, initializeMessaging, initNotificationButton, showNotificationModal, closeNotificationModal, toggleNotifications } from './notifications.js';
 
 // Type button handlers
 function updateTypeButtons() {
@@ -85,6 +86,10 @@ async function init() {
         await authenticateWithFirebase();
         console.log('Firebase ready!');
 
+        // Initialize Service Worker and Notifications
+        registerServiceWorker().catch(err => console.error('Service Worker registration failed:', err));
+        initializeMessaging().catch(err => console.error('Firebase Messaging initialization failed:', err));
+
         // Initialize sun data (async, doesn't block)
         initSunData().catch(err => console.error('Failed to load sun data:', err));
 
@@ -109,6 +114,22 @@ async function init() {
         initTypeButtons();
         initScheduleTypeButtons();
         initWeekViewToggle();
+        initNotificationButton();
+
+        // Initialize notification modal listeners
+        if (dom.notificationModalClose) {
+            dom.notificationModalClose.addEventListener('click', closeNotificationModal);
+        }
+        if (dom.notificationToggle) {
+            dom.notificationToggle.addEventListener('click', toggleNotifications);
+        }
+        if (dom.notificationModal) {
+            dom.notificationModal.addEventListener('click', (e) => {
+                if (e.target === dom.notificationModal) {
+                    closeNotificationModal();
+                }
+            });
+        }
 
         // Restore saved selection
         const savedType = localStorage.getItem('selectedType');

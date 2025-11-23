@@ -1,6 +1,6 @@
 /**
  * Cron Job Scheduler
- * Automatically runs prefetch every hour
+ * Automatically runs prefetch every 10 minutes
  */
 
 const cron = require('node-cron');
@@ -46,7 +46,7 @@ async function runPrefetch() {
 
 /**
  * Start cron job scheduler
- * Runs every hour at minute 0 (e.g., 14:00, 15:00, 16:00)
+ * Runs every 10 minutes (e.g., 14:00, 14:10, 14:20, ...)
  */
 function startCronJob() {
     if (cronJob) {
@@ -66,16 +66,16 @@ function startCronJob() {
     console.log('🚀 Running initial prefetch on startup...');
     runPrefetch().catch(err => console.error('Initial prefetch failed:', err));
 
-    // Schedule cron: Every hour at minute 0
+    // Schedule cron: Every 10 minutes
     // Cron format: minute hour day month weekday
-    // '0 * * * *' = every hour at minute 0
-    cronJob = cron.schedule('0 * * * *', () => {
-        console.log('⏰ Hourly prefetch triggered');
+    // '*/10 * * * *' = every 10 minutes
+    cronJob = cron.schedule('*/10 * * * *', () => {
+        console.log('⏰ 10-minute prefetch triggered');
         runPrefetch().catch(err => console.error('Scheduled prefetch failed:', err));
     });
 
-    console.log('✅ Cron job scheduled: Running every hour at minute 0');
-    console.log('   Next run will be at the top of the next hour\n');
+    console.log('✅ Cron job scheduled: Running every 10 minutes');
+    console.log('   Next run will be in approximately 10 minutes\n');
 }
 
 /**

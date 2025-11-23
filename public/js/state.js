@@ -7,7 +7,9 @@ export const state = {
     selectedScheduleType: 'actual',
     weekOffset: 0,
     teacherAbbreviationMap: null,
-    showWholeWeek: false
+    showWholeWeek: false,
+    notificationsEnabled: false,
+    watchedTimetables: []
 };
 
 export function updateState(key, value) {

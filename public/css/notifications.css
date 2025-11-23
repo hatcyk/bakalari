@@ -1,0 +1,130 @@
+/* Notification Bell Button */
+.notification-bell {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    background: var(--card-bg);
+    color: var(--text-main);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-bell:hover {
+    border-color: var(--accent);
+    transform: scale(1.05);
+}
+
+.notification-bell.disabled {
+    opacity: 0.5;
+}
+
+.notification-bell.disabled .bell-icon {
+    display: none;
+}
+
+.notification-bell.disabled .bell-off-icon {
+    display: block !important;
+}
+
+.notification-bell:not(.disabled) .bell-icon {
+    display: block;
+}
+
+.notification-bell:not(.disabled) .bell-off-icon {
+    display: none !important;
+}
+
+/* Notification Modal Specific Styles */
+.notification-warning {
+    display: flex;
+    gap: 12px;
+    padding: 15px;
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+
+.notification-warning svg {
+    flex-shrink: 0;
+    color: #FFC107;
+}
+
+.notification-toggle-btn {
+    width: 100%;
+    padding: 12px 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 30px;
+}
+
+.notification-toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 110, 245, 0.3);
+}
+
+.notification-toggle-btn.danger {
+    background: #f44336;
+}
+
+.notification-toggle-btn.danger:hover {
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
+
+.notification-section {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+}
+
+.notification-section h3 {
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    color: var(--text-main);
+}
+
+.watched-timetables-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.watched-timetable-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.watched-timetable-item:hover {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+}
+
+.watched-timetable-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.watched-timetable-item span {
+    flex: 1;
+    font-size: 0.95em;
+}

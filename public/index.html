@@ -13,6 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Rozvrhy">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/theme-warning.css">
+    <link rel="stylesheet" href="css/notifications.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -58,6 +59,17 @@
                             <path d="M8 14h.01"></path>
                             <path d="M12 14h.01"></path>
                             <path d="M16 14h.01"></path>
+                        </svg>
+                    </button>
+                    <button class="notification-bell disabled" id="notificationBell" aria-label="Notifikace" title="Notifikace vypnuty">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bell-icon">
+                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bell-off-icon" style="display: none;">
+                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                            <line x1="4" y1="4" x2="20" y2="20"/>
                         </svg>
                     </button>
                     <button class="theme-toggle" id="themeToggle" aria-label="Přepnout téma">
@@ -162,6 +174,55 @@
         </div>
     </div>
 
+    <!-- Notification Settings Modal -->
+    <div class="modal-overlay hidden" id="notificationModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔔 Notifikace o změnách</h2>
+                <button class="modal-close" id="notificationModalClose">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="iosWarning" class="notification-warning" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                        <path d="M12 9v4"/>
+                        <path d="M12 17h.01"/>
+                    </svg>
+                    <div>
+                        <strong>Pro iOS:</strong> Musíte nejdřív přidat tuto stránku na plochu (Home Screen).<br>
+                        Klikněte na <strong>Sdílet</strong> → <strong>Přidat na plochu</strong>
+                    </div>
+                </div>
+
+                <p style="margin-bottom: 20px;">
+                    Dostávejte notifikace o změnách v rozvrhu - odpadlé hodiny, suplování, změny místností a další.
+                </p>
+
+                <button id="notificationToggle" class="notification-toggle-btn">
+                    Zapnout notifikace
+                </button>
+
+                <div class="notification-section">
+                    <h3>Sledované rozvrhy</h3>
+                    <p style="font-size: 0.9em; opacity: 0.8; margin-bottom: 10px;">
+                        Vyberte rozvrhy, pro které chcete dostávat notifikace:
+                    </p>
+                    <div id="watchedTimetablesList" class="watched-timetables-list">
+                        <label class="watched-timetable-item">
+                            <input type="checkbox" data-type="Class" data-id="current" data-schedule-type="actual">
+                            <span>Aktuálně vybraný rozvrh</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer>
         <p>Created by Štefan Barát 3.A</p>
     </footer>
@@ -170,6 +231,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
 
     <!-- Firebase Configuration -->
     <script>

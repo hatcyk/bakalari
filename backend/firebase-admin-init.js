@@ -86,6 +86,15 @@ function getFirebaseApp() {
 }
 
 /**
+ * Get Firebase Messaging instance
+ * @returns {admin.messaging.Messaging}
+ */
+function getMessaging() {
+    const app = getFirebaseApp();
+    return app.messaging();
+}
+
+/**
  * Create custom auth token for client
  * @param {string} uid - User ID
  * @param {object} claims - Optional custom claims
@@ -106,5 +115,6 @@ module.exports = {
     initializeFirebaseAdmin,
     getFirestore,
     getFirebaseApp,
+    getMessaging,
     createCustomToken,
 };

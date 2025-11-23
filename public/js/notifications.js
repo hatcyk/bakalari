@@ -372,4 +372,172 @@ export function initNotificationButton() {
 
     // Set initial UI state
     updateNotificationBellUI();
+
+    // Load debug status and show debug panel if enabled
+    loadDebugStatus();
+}
+
+/**
+ * Check if debug mode is enabled
+ */
+let debugModeEnabled = false;
+
+async function loadDebugStatus() {
+    try {
+        const response = await fetch('/api/debug/status');
+        const data = await response.json();
+        debugModeEnabled = data.debugMode;
+
+        if (debugModeEnabled) {
+            console.log('🔧 Debug mode is enabled');
+            showDebugPanel();
+        }
+
+    } catch (error) {
+        // Debug endpoint not available or error
+        debugModeEnabled = false;
+    }
+}
+
+/**
+ * Show debug panel in notification modal
+ */
+function showDebugPanel() {
+    // Create debug panel if it doesn't exist
+    if (!document.getElementById('debugPanel')) {
+        const debugPanel = document.createElement('div');
+        debugPanel.id = 'debugPanel';
+        debugPanel.className = 'notification-section debug-section';
+        debugPanel.innerHTML = `
+            <h3>🔧 Debug Mode</h3>
+            <div class="debug-info" style="font-size: 0.85em; margin-bottom: 15px;">
+                <p><strong>User ID:</strong> <span id="debugUserId">${localStorage.getItem('userId') || 'N/A'}</span></p>
+                <p><strong>FCM Token:</strong> <code id="debugFcmToken" style="word-break: break-all; font-size: 0.75em;">Loading...</code></p>
+                <p><strong>Notifications:</strong> <span id="debugNotifStatus">Loading...</span></p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button id="debugTestNotif" class="debug-btn">🧪 Test notifikace</button>
+                <button id="debugCreateChange" class="debug-btn">📝 Vytořit fake změnu</button>
+                <button id="debugViewChanges" class="debug-btn">📋 Zobrazit pending changes</button>
+            </div>
+        `;
+
+        // Insert before the first notification-section or at the end
+        const modalBody = dom.notificationModal?.querySelector('.modal-body');
+        if (modalBody) {
+            const firstSection = modalBody.querySelector('.notification-section');
+            if (firstSection) {
+                modalBody.insertBefore(debugPanel, firstSection);
+            } else {
+                modalBody.appendChild(debugPanel);
+            }
+
+            // Add event listeners
+            document.getElementById('debugTestNotif')?.addEventListener('click', sendTestNotification);
+            document.getElementById('debugCreateChange')?.addEventListener('click', createFakeChange);
+            document.getElementById('debugViewChanges')?.addEventListener('click', viewPendingChanges);
+
+            // Update debug info
+            updateDebugInfo();
+        }
+    }
+}
+
+/**
+ * Update debug info display
+ */
+function updateDebugInfo() {
+    const tokenEl = document.getElementById('debugFcmToken');
+    const statusEl = document.getElementById('debugNotifStatus');
+
+    if (tokenEl) {
+        tokenEl.textContent = fcmToken ? fcmToken.substring(0, 50) + '...' : 'No token';
+    }
+
+    if (statusEl) {
+        statusEl.textContent = state.notificationsEnabled ? '✅ Enabled' : '❌ Disabled';
+    }
+}
+
+/**
+ * Send test notification
+ */
+async function sendTestNotification() {
+    try {
+        const userId = localStorage.getItem('userId');
+
+        if (!userId) {
+            alert('User ID not found. Authenticate first.');
+            return;
+        }
+
+        const response = await fetch('/api/debug/test-notification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('✅ ' + data.message);
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+
+    } catch (error) {
+        alert('❌ Failed to send test notification: ' + error.message);
+    }
+}
+
+/**
+ * Create fake change
+ */
+async function createFakeChange() {
+    try {
+        const response = await fetch('/api/debug/create-fake-change', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                timetableType: 'Class',
+                timetableId: 'DEBUG',
+                timetableName: 'Debug Test Class'
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('✅ Fake change created!\nChange ID: ' + data.changeId + '\n\nNow run /api/fcm/process-changes to send notifications.');
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+
+    } catch (error) {
+        alert('❌ Failed to create fake change: ' + error.message);
+    }
+}
+
+/**
+ * View pending changes
+ */
+async function viewPendingChanges() {
+    try {
+        const response = await fetch('/api/debug/pending-changes');
+        const data = await response.json();
+
+        if (response.ok) {
+            if (data.count === 0) {
+                alert('ℹ️ No pending changes found.');
+            } else {
+                console.log('Pending changes:', data.changes);
+                alert(`📋 Found ${data.count} pending change(s).\nCheck console for details.`);
+            }
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+
+    } catch (error) {
+        alert('❌ Failed to get pending changes: ' + error.message);
+    }
 }

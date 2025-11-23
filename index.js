@@ -447,6 +447,245 @@ app.post('/api/fcm/process-changes', async (req, res) => {
     }
 });
 
+// === DEBUG ENDPOINTS (only available when DEBUG=true) ===
+
+// Debug middleware - check if debug mode is enabled
+function requireDebugMode(req, res, next) {
+    if (!DEBUG) {
+        return res.status(403).json({ error: 'Debug mode is not enabled' });
+    }
+    next();
+}
+
+// Send test notification to current user
+app.post('/api/debug/test-notification', requireDebugMode, async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const db = getFirestore();
+        const userDoc = await db.collection('users').doc(userId).get();
+
+        if (!userDoc.exists) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const userData = userDoc.data();
+        const tokens = userData.tokens || [];
+
+        if (tokens.length === 0) {
+            return res.status(400).json({ error: 'User has no FCM tokens' });
+        }
+
+        const notification = {
+            title: '🧪 Testovací notifikace',
+            body: 'Tohle je testovací notifikace z debug módu!',
+            data: {
+                type: 'test',
+                timestamp: new Date().toISOString()
+            },
+            icon: '/icon-192.png'
+        };
+
+        const result = await sendNotificationToTokens(tokens, notification);
+
+        res.json({
+            success: true,
+            message: `Test notification sent to ${result.successCount} device(s)`,
+            result: result
+        });
+
+    } catch (error) {
+        console.error('Test notification error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Send test notification to ALL users
+app.post('/api/debug/test-notification-all', requireDebugMode, async (req, res) => {
+    try {
+        const db = getFirestore();
+        const usersSnapshot = await db.collection('users').get();
+
+        const allTokens = [];
+        usersSnapshot.forEach(userDoc => {
+            const userData = userDoc.data();
+            if (userData.tokens && userData.tokens.length > 0) {
+                allTokens.push(...userData.tokens);
+            }
+        });
+
+        if (allTokens.length === 0) {
+            return res.status(400).json({ error: 'No users with FCM tokens found' });
+        }
+
+        const notification = {
+            title: '🧪 Testovací notifikace (všichni)',
+            body: 'Debug broadcast notifikace pro všechny uživatele!',
+            data: {
+                type: 'test_broadcast',
+                timestamp: new Date().toISOString()
+            },
+            icon: '/icon-192.png'
+        };
+
+        const result = await sendNotificationToTokens(allTokens, notification);
+
+        res.json({
+            success: true,
+            message: `Test notification sent to ${result.successCount}/${allTokens.length} devices`,
+            result: result
+        });
+
+    } catch (error) {
+        console.error('Test notification all error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Create fake timetable change for testing
+app.post('/api/debug/create-fake-change', requireDebugMode, async (req, res) => {
+    try {
+        const { timetableType, timetableId, timetableName } = req.body;
+
+        const db = getFirestore();
+
+        const fakeChange = {
+            timetable: {
+                type: timetableType || 'Class',
+                id: timetableId || 'TEST',
+                name: timetableName || 'Testovací třída',
+                scheduleType: 'Actual'
+            },
+            changes: [
+                {
+                    type: 'lesson_removed',
+                    day: 1,
+                    dayName: 'út',
+                    hour: 3,
+                    description: '🧪 DEBUG: Odpadla hodina: Matematika (Test Teacher)',
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    type: 'substitution',
+                    day: 2,
+                    dayName: 'st',
+                    hour: 2,
+                    description: '🧪 DEBUG: Suplování: Fyzika - Original Teacher → Substitute Teacher',
+                    timestamp: new Date().toISOString()
+                }
+            ],
+            timestamp: new Date().toISOString(),
+            sent: false
+        };
+
+        const changeRef = await db.collection('changes').add(fakeChange);
+
+        res.json({
+            success: true,
+            message: 'Fake change created',
+            changeId: changeRef.id,
+            change: fakeChange
+        });
+
+    } catch (error) {
+        console.error('Create fake change error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all pending changes
+app.get('/api/debug/pending-changes', requireDebugMode, async (req, res) => {
+    try {
+        const db = getFirestore();
+        const changesSnapshot = await db.collection('changes')
+            .where('sent', '==', false)
+            .get();
+
+        const changes = [];
+        changesSnapshot.forEach(doc => {
+            changes.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        res.json({
+            count: changes.length,
+            changes: changes
+        });
+
+    } catch (error) {
+        console.error('Get pending changes error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Clear all pending changes
+app.delete('/api/debug/clear-changes', requireDebugMode, async (req, res) => {
+    try {
+        const db = getFirestore();
+        const changesSnapshot = await db.collection('changes').get();
+
+        const batch = db.batch();
+        changesSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+
+        res.json({
+            success: true,
+            message: `Deleted ${changesSnapshot.size} change document(s)`
+        });
+
+    } catch (error) {
+        console.error('Clear changes error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all users with FCM tokens
+app.get('/api/debug/users', requireDebugMode, async (req, res) => {
+    try {
+        const db = getFirestore();
+        const usersSnapshot = await db.collection('users').get();
+
+        const users = [];
+        usersSnapshot.forEach(doc => {
+            const userData = doc.data();
+            users.push({
+                userId: doc.id,
+                tokenCount: (userData.tokens || []).length,
+                tokens: userData.tokens || [],
+                watchedTimetables: userData.preferences?.watchedTimetables || [],
+                createdAt: userData.createdAt,
+                lastUpdated: userData.lastUpdated
+            });
+        });
+
+        res.json({
+            count: users.length,
+            users: users
+        });
+
+    } catch (error) {
+        console.error('Get users error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get debug status
+app.get('/api/debug/status', (req, res) => {
+    res.json({
+        debugMode: DEBUG,
+        message: DEBUG ? 'Debug mode is enabled' : 'Debug mode is disabled'
+    });
+});
+
 // Funkce pro získání lokální IP adresy
 function getLocalIP() {
     const interfaces = os.networkInterfaces();
@@ -467,6 +706,19 @@ app.listen(PORT, HOST, () => {
     const localIP = getLocalIP();
     console.log(`http://localhost:${PORT}`);
     console.log(`http://${localIP}:${PORT}`);
+
+    // Debug mode indicator
+    if (DEBUG) {
+        console.log('\n🔧 DEBUG MODE ENABLED');
+        console.log('   Debug endpoints available at /api/debug/*');
+        console.log('   - POST /api/debug/test-notification');
+        console.log('   - POST /api/debug/test-notification-all');
+        console.log('   - POST /api/debug/create-fake-change');
+        console.log('   - GET  /api/debug/pending-changes');
+        console.log('   - DELETE /api/debug/clear-changes');
+        console.log('   - GET  /api/debug/users');
+        console.log('   - GET  /api/debug/status\n');
+    }
 
     // Start cron job for automatic prefetching
     console.log('\n🔄 Starting automatic prefetch cron job...');

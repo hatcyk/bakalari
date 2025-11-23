@@ -128,3 +128,47 @@
     flex: 1;
     font-size: 0.95em;
 }
+
+/* Debug Section */
+.debug-section {
+    background: rgba(255, 193, 7, 0.05);
+    border: 1px solid rgba(255, 193, 7, 0.2);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.debug-section h3 {
+    color: #FFC107;
+    margin-bottom: 15px;
+}
+
+.debug-info p {
+    margin: 8px 0;
+    color: var(--text-main);
+}
+
+.debug-info code {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.debug-btn {
+    padding: 8px 16px;
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid rgba(255, 193, 7, 0.4);
+    border-radius: 6px;
+    color: var(--text-main);
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.debug-btn:hover {
+    background: rgba(255, 193, 7, 0.3);
+    border-color: rgba(255, 193, 7, 0.6);
+    transform: translateY(-1px);
+}

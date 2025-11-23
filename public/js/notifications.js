@@ -103,7 +103,7 @@ export async function requestNotificationPermission() {
         }
 
         fcmToken = await messaging.getToken({
-            vapidKey: 'YOUR_VAPID_KEY_HERE' // TODO: Add your VAPID key
+            vapidKey: 'BA7vbWhWxiPOE6sZtC9k4FMb2wHt2jNOmt5mo1EGtYhHvkbGraSGmkvAgacQO5IBL1Eu1KM-wJGWyY0z_D7yYL0'
         });
 
         if (!fcmToken) {

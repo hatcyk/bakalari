@@ -68,12 +68,18 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-bottom: 30px;
+    margin-top: 30px;
 }
 
-.notification-toggle-btn:hover {
+.notification-toggle-btn:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(76, 110, 245, 0.3);
+}
+
+.notification-toggle-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
 }
 
 .notification-toggle-btn.danger {

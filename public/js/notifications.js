@@ -266,6 +266,14 @@ function updateNotificationModalContent() {
  * Toggle notifications on/off
  */
 export async function toggleNotifications() {
+    const button = dom.notificationToggle;
+    if (!button) return;
+
+    // Disable button during processing to prevent spam clicks
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = 'Zpracovávám...';
+
     try {
         if (state.notificationsEnabled) {
             await disableNotifications();
@@ -281,6 +289,10 @@ export async function toggleNotifications() {
         } else {
             alert('Nepodařilo se zapnout notifikace: ' + error.message);
         }
+    } finally {
+        // Re-enable button
+        button.disabled = false;
+        button.textContent = originalText;
     }
 }
 

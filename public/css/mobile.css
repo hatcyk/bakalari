@@ -165,6 +165,11 @@
         transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
+    /* Hide day selector when showing whole week */
+    .day-selector.hide-day-selector {
+        display: none !important;
+    }
+
     /* Animation states for day selector */
     .day-selector.hiding {
         opacity: 0;

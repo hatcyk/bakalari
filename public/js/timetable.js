@@ -81,17 +81,33 @@ export function createDaySelector() {
         dom.daySelector.appendChild(btn);
     });
 
-    // Set visibility based on showWholeWeek state
+    // Set visibility based on showWholeWeek state using CSS class
     // Don't show day selector if whole week is being displayed
     if (state.showWholeWeek) {
-        dom.daySelector.style.display = 'none';
+        dom.daySelector.classList.add('hide-day-selector');
+    } else {
+        dom.daySelector.classList.remove('hide-day-selector');
     }
+}
+
+// Update active day button without rebuilding DOM
+function updateActiveDayButton() {
+    if (!dom.daySelector) return;
+
+    const buttons = dom.daySelector.querySelectorAll('button');
+    buttons.forEach((btn, index) => {
+        if (index === state.selectedDayIndex) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
 }
 
 // Select day on mobile
 function selectDay(index) {
     updateState('selectedDayIndex', index);
-    createDaySelector();
+    updateActiveDayButton();
     updateMobileDayView();
 }
 
@@ -106,7 +122,7 @@ function updateMobileDayView() {
         if (dom.daySelector) {
             dom.daySelector.classList.add('hiding');
             setTimeout(() => {
-                dom.daySelector.style.display = 'none';
+                dom.daySelector.classList.add('hide-day-selector');
                 dom.daySelector.classList.remove('hiding');
             }, 300); // Match CSS transition duration
         }
@@ -121,7 +137,7 @@ function updateMobileDayView() {
         });
         // Show day selector with animation when showing single day
         if (dom.daySelector) {
-            dom.daySelector.style.display = 'flex';
+            dom.daySelector.classList.remove('hide-day-selector');
             // Force reflow to trigger animation
             dom.daySelector.offsetHeight;
             dom.daySelector.classList.add('showing');

@@ -55,6 +55,7 @@ export async function initializeMessaging() {
 
 /**
  * Register service worker
+ * Note: Firebase Messaging requires its own service worker
  */
 export async function registerServiceWorker() {
     try {
@@ -63,10 +64,11 @@ export async function registerServiceWorker() {
             return null;
         }
 
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('✅ Service Worker registered:', registration.scope);
+        // Firebase Messaging will register its own service worker
+        // at /firebase-messaging-sw.js automatically
+        console.log('✅ Service Worker will be registered by Firebase Messaging');
 
-        return registration;
+        return null;
 
     } catch (error) {
         console.error('Service Worker registration failed:', error);
@@ -409,16 +411,46 @@ function showDebugPanel() {
         debugPanel.id = 'debugPanel';
         debugPanel.className = 'notification-section debug-section';
         debugPanel.innerHTML = `
-            <h3>🔧 Debug Mode</h3>
+            <h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v6m0 6v6"/>
+                    <path d="m4.93 4.93 4.24 4.24m5.66 5.66 4.24 4.24"/>
+                    <path d="M1 12h6m6 0h6"/>
+                    <path d="m4.93 19.07 4.24-4.24m5.66-5.66 4.24-4.24"/>
+                </svg>
+                Debug Mode
+            </h3>
             <div class="debug-info" style="font-size: 0.85em; margin-bottom: 15px;">
                 <p><strong>User ID:</strong> <span id="debugUserId">${localStorage.getItem('userId') || 'N/A'}</span></p>
                 <p><strong>FCM Token:</strong> <code id="debugFcmToken" style="word-break: break-all; font-size: 0.75em;">Loading...</code></p>
                 <p><strong>Notifications:</strong> <span id="debugNotifStatus">Loading...</span></p>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button id="debugTestNotif" class="debug-btn">🧪 Test notifikace</button>
-                <button id="debugCreateChange" class="debug-btn">📝 Vytořit fake změnu</button>
-                <button id="debugViewChanges" class="debug-btn">📋 Zobrazit pending changes</button>
+                <button id="debugTestNotif" class="debug-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    Test notifikace
+                </button>
+                <button id="debugCreateChange" class="debug-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                    Vytvořit fake změnu
+                </button>
+                <button id="debugViewChanges" class="debug-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    Zobrazit pending changes
+                </button>
             </div>
         `;
 
@@ -455,7 +487,11 @@ function updateDebugInfo() {
     }
 
     if (statusEl) {
-        statusEl.textContent = state.notificationsEnabled ? '✅ Enabled' : '❌ Disabled';
+        if (state.notificationsEnabled) {
+            statusEl.innerHTML = '<span style="color: #4caf50;">Enabled</span>';
+        } else {
+            statusEl.innerHTML = '<span style="color: #f44336;">Disabled</span>';
+        }
     }
 }
 
@@ -480,13 +516,13 @@ async function sendTestNotification() {
         const data = await response.json();
 
         if (response.ok) {
-            alert('✅ ' + data.message);
+            alert('Success: ' + data.message);
         } else {
-            alert('❌ Error: ' + data.error);
+            alert('Error: ' + data.error);
         }
 
     } catch (error) {
-        alert('❌ Failed to send test notification: ' + error.message);
+        alert('Failed to send test notification: ' + error.message);
     }
 }
 
@@ -508,13 +544,13 @@ async function createFakeChange() {
         const data = await response.json();
 
         if (response.ok) {
-            alert('✅ Fake change created!\nChange ID: ' + data.changeId + '\n\nNow run /api/fcm/process-changes to send notifications.');
+            alert('Fake change created!\nChange ID: ' + data.changeId + '\n\nNow run /api/fcm/process-changes to send notifications.');
         } else {
-            alert('❌ Error: ' + data.error);
+            alert('Error: ' + data.error);
         }
 
     } catch (error) {
-        alert('❌ Failed to create fake change: ' + error.message);
+        alert('Failed to create fake change: ' + error.message);
     }
 }
 
@@ -528,16 +564,16 @@ async function viewPendingChanges() {
 
         if (response.ok) {
             if (data.count === 0) {
-                alert('ℹ️ No pending changes found.');
+                alert('No pending changes found.');
             } else {
                 console.log('Pending changes:', data.changes);
-                alert(`📋 Found ${data.count} pending change(s).\nCheck console for details.`);
+                alert(`Found ${data.count} pending change(s).\nCheck console for details.`);
             }
         } else {
-            alert('❌ Error: ' + data.error);
+            alert('Error: ' + data.error);
         }
 
     } catch (error) {
-        alert('❌ Failed to get pending changes: ' + error.message);
+        alert('Failed to get pending changes: ' + error.message);
     }
 }

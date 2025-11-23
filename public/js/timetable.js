@@ -80,6 +80,12 @@ export function createDaySelector() {
         btn.addEventListener('click', () => selectDay(index));
         dom.daySelector.appendChild(btn);
     });
+
+    // Set visibility based on showWholeWeek state
+    // Don't show day selector if whole week is being displayed
+    if (state.showWholeWeek) {
+        dom.daySelector.style.display = 'none';
+    }
 }
 
 // Select day on mobile

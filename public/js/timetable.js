@@ -96,9 +96,13 @@ function updateMobileDayView() {
     if (state.showWholeWeek) {
         // Show all days when whole week view is active
         rows.forEach(row => row.classList.add('active'));
-        // Hide day selector when showing whole week
+        // Hide day selector with animation when showing whole week
         if (dom.daySelector) {
-            dom.daySelector.style.display = 'none';
+            dom.daySelector.classList.add('hiding');
+            setTimeout(() => {
+                dom.daySelector.style.display = 'none';
+                dom.daySelector.classList.remove('hiding');
+            }, 300); // Match CSS transition duration
         }
     } else {
         // Show only selected day (original behavior)
@@ -109,9 +113,15 @@ function updateMobileDayView() {
                 row.classList.remove('active');
             }
         });
-        // Show day selector when showing single day
+        // Show day selector with animation when showing single day
         if (dom.daySelector) {
             dom.daySelector.style.display = 'flex';
+            // Force reflow to trigger animation
+            dom.daySelector.offsetHeight;
+            dom.daySelector.classList.add('showing');
+            setTimeout(() => {
+                dom.daySelector.classList.remove('showing');
+            }, 300);
         }
     }
 }

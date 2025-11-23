@@ -102,10 +102,16 @@
         background: var(--accent);
         color: white;
         border-color: var(--accent);
+        transform: scale(1.05);
     }
 
     .week-view-toggle svg {
         flex-shrink: 0;
+        transition: transform 0.3s ease;
+    }
+
+    .week-view-toggle.active svg {
+        transform: rotate(360deg);
     }
 
     /* Theme toggle inline (not absolute) */
@@ -154,6 +160,30 @@
 
     .day-selector {
         display: flex !important; /* Override the desktop display:none */
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    /* Animation states for day selector */
+    .day-selector.hiding {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    .day-selector.showing {
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .timetable-container {
@@ -165,10 +195,22 @@
 
     .timetable-row {
         display: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
 
     .timetable-row.active {
         display: table-row;
+        animation: fadeInRow 0.3s ease forwards;
+    }
+
+    @keyframes fadeInRow {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
     }
 
     /* When showing whole week, reduce row height for better fit */

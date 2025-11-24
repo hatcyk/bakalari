@@ -62,9 +62,13 @@ function showNightWarning(callback) {
     const closeDialog = (confirmed) => {
         overlay.classList.add('closing');
         overlay.classList.remove('visible');
-        setTimeout(() => {
+
+        const onAnimationEnd = () => {
             overlay.remove();
-        }, 300);
+            overlay.removeEventListener('animationend', onAnimationEnd);
+        };
+
+        overlay.addEventListener('animationend', onAnimationEnd);
 
         if (confirmed) {
             callback();

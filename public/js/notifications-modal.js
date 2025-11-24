@@ -42,10 +42,18 @@ export function showNotificationModal() {
  */
 export function closeNotificationModal() {
     if (!dom.notificationModal) return;
-    setTimeout(() => {
+
+    // Add closing animation class (assuming CSS supports it, if not it will just close)
+    dom.notificationModal.classList.add('closing');
+
+    const onAnimationEnd = () => {
         dom.notificationModal.classList.add('hidden');
+        dom.notificationModal.classList.remove('closing');
         dom.notificationModal.style.display = 'none';
-    }, 250);
+        dom.notificationModal.removeEventListener('animationend', onAnimationEnd);
+    };
+
+    dom.notificationModal.addEventListener('animationend', onAnimationEnd);
 }
 
 /**
@@ -305,9 +313,9 @@ async function simulateTimetableChange() {
         console.log('✅ Simulated change result:', result);
 
         alert(`✅ Hotovo!\n\n` +
-              `Změna vytvořena pro: ${timetable.name}\n` +
-              `Notifikace poslány: ${result.notificationResult?.sentCount || 0}x\n` +
-              `Zpracováno změn: ${result.notificationResult?.processedCount || 0}`);
+            `Změna vytvořena pro: ${timetable.name}\n` +
+            `Notifikace poslány: ${result.notificationResult?.sentCount || 0}x\n` +
+            `Zpracováno změn: ${result.notificationResult?.processedCount || 0}`);
 
     } catch (error) {
         console.error('Failed to simulate change:', error);

@@ -140,12 +140,16 @@ export function closeLessonModal() {
         // Add closing animation class
         dom.lessonModal.classList.add('closing');
 
-        // Wait for animation to finish, then hide modal
-        setTimeout(() => {
+        // Function to handle cleanup after animation
+        const onAnimationEnd = () => {
             dom.lessonModal.classList.add('hidden');
             dom.lessonModal.classList.remove('closing');
             dom.lessonModal.style.display = 'none';
-        }, 300); // Match the longest animation duration (slideDown = 0.3s)
+            dom.lessonModal.removeEventListener('animationend', onAnimationEnd);
+        };
+
+        // Listen for animation end
+        dom.lessonModal.addEventListener('animationend', onAnimationEnd);
     }
 }
 

@@ -20,10 +20,18 @@ export function showSettingsModal() {
 export function closeSettingsModal() {
     const modal = document.getElementById('settingsModal');
     if (!modal) return;
-    setTimeout(() => {
+
+    // Add closing animation class
+    modal.classList.add('closing');
+
+    const onAnimationEnd = () => {
         modal.classList.add('hidden');
+        modal.classList.remove('closing');
         modal.style.display = 'none';
-    }, 250);
+        modal.removeEventListener('animationend', onAnimationEnd);
+    };
+
+    modal.addEventListener('animationend', onAnimationEnd);
 }
 
 /**

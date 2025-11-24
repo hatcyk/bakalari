@@ -13,12 +13,12 @@
     padding: 20px;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
 }
 
 .theme-warning-overlay.visible {
     opacity: 1;
     pointer-events: all;
+    animation: fadeIn 0.6s ease forwards;
 }
 
 .theme-warning-dialog {
@@ -29,29 +29,17 @@
     max-width: 500px;
     width: 100%;
     overflow: hidden;
-    transform: scale(0.8) translateY(20px);
-    opacity: 0;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-                opacity 0.3s ease,
-                background var(--theme-transition),
-                border-color var(--theme-transition),
-                box-shadow var(--theme-transition);
+    transition: background var(--theme-transition),
+        border-color var(--theme-transition),
+        box-shadow var(--theme-transition);
 }
 
-.theme-warning-overlay.visible .theme-warning-dialog {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-}
+/* No transform needed for dialog */
 
 /* Closing animation */
 .theme-warning-overlay.closing {
-    opacity: 0;
+    animation: fadeOut 0.6s ease forwards;
     pointer-events: none;
-}
-
-.theme-warning-overlay.closing .theme-warning-dialog {
-    transform: scale(0.9) translateY(10px);
-    opacity: 0;
 }
 
 .theme-warning-header {

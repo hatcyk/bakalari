@@ -345,12 +345,12 @@
     margin-bottom: 16px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
-.selected-timetables-section h4::before {
-    content: '⚙️';
-    font-size: 1.2em;
+.selected-timetables-section h4 svg {
+    color: #EB5D43;
+    flex-shrink: 0;
 }
 
 .selected-timetables-list {

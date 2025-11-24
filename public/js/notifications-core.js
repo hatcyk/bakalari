@@ -53,7 +53,7 @@ export async function initializeMessaging() {
 }
 
 /**
- * Register service worker
+ * Register service worker and wait for it to be ready
  * Note: Firebase Messaging requires its own service worker
  */
 export async function registerServiceWorker() {
@@ -63,15 +63,27 @@ export async function registerServiceWorker() {
             return null;
         }
 
-        // Firebase Messaging will register its own service worker
-        // at /firebase-messaging-sw.js automatically
-        console.log('✅ Service Worker will be registered by Firebase Messaging');
+        // Check if service worker is already registered
+        let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
 
-        return null;
+        if (!registration) {
+            // Register Firebase Messaging service worker
+            console.log('📝 Registering Firebase Messaging Service Worker...');
+            registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            console.log('✅ Service Worker registered:', registration.scope);
+        } else {
+            console.log('✅ Service Worker already registered:', registration.scope);
+        }
+
+        // Wait for service worker to be ready
+        await navigator.serviceWorker.ready;
+        console.log('✅ Service Worker is ready');
+
+        return registration;
 
     } catch (error) {
-        console.error('Service Worker registration failed:', error);
-        return null;
+        console.error('❌ Service Worker registration failed:', error);
+        throw error;
     }
 }
 
@@ -89,18 +101,31 @@ export async function requestNotificationPermission() {
             throw new Error('IOS_NOT_STANDALONE');
         }
 
+        // IMPORTANT: Register and wait for Service Worker FIRST
+        console.log('🔄 Registering Service Worker...');
+        await registerServiceWorker();
+
+        // Wait a bit to ensure Service Worker is fully active
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Request permission
+        console.log('🔔 Requesting notification permission...');
         const permission = await Notification.requestPermission();
 
         if (permission !== 'granted') {
             throw new Error('Notification permission denied');
         }
 
-        // Get FCM token
+        console.log('✅ Notification permission granted');
+
+        // Initialize Firebase Messaging
         if (!messaging) {
+            console.log('🔄 Initializing Firebase Messaging...');
             await initializeMessaging();
         }
 
+        // Get FCM token
+        console.log('🔄 Getting FCM token...');
         fcmToken = await messaging.getToken({
             vapidKey: 'BA7vbWhWxiPOE6sZtC9k4FMb2wHt2jNOmt5mo1EGtYhHvkbGraSGmkvAgacQO5IBL1Eu1KM-wJGWyY0z_D7yYL0'
         });
@@ -120,7 +145,7 @@ export async function requestNotificationPermission() {
         return fcmToken;
 
     } catch (error) {
-        console.error('Failed to request notification permission:', error);
+        console.error('❌ Failed to request notification permission:', error);
         throw error;
     }
 }

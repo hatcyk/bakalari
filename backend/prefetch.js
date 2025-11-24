@@ -257,6 +257,22 @@ async function prefetchAllData() {
         console.log('\n📋 Fetching definitions...');
         const definitions = await fetchDefinitions();
 
+        // Only save definitions if we got valid data (not empty)
+        const totalEntitiesFetched = definitions.classes.length + definitions.teachers.length + definitions.rooms.length;
+        if (totalEntitiesFetched === 0) {
+            console.log('⚠️  WARNING: Fetched 0 definitions - cookie may be expired or API failed');
+            console.log('⚠️  Keeping existing definitions in Firebase to prevent data loss');
+            console.log('⚠️  Skipping prefetch to avoid overwriting valid data\n');
+            return {
+                success: false,
+                totalRequests: 0,
+                successCount: 0,
+                errorCount: 0,
+                duration: Date.now() - startTime,
+                error: 'No definitions fetched - check cookie validity'
+            };
+        }
+
         await db.collection('definitions').doc('current').set({
             ...definitions,
             lastUpdate: new Date().toISOString(),

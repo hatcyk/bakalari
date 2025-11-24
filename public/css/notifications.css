@@ -59,47 +59,57 @@
 
 .notification-toggle-btn {
     width: 100%;
-    padding: 12px 24px;
-    background: var(--accent);
+    padding: 16px 24px;
+    background: linear-gradient(135deg, #EB5D43 0%, #d94e37 100%);
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 1em;
-    font-weight: 500;
+    border-radius: 12px;
+    font-size: 1.05em;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     margin-top: 30px;
+    box-shadow: 0 4px 16px rgba(235, 93, 67, 0.3);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .notification-toggle-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(76, 110, 245, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(235, 93, 67, 0.4);
+    background: linear-gradient(135deg, #f06b52 0%, #e25a46 100%);
 }
 
 .notification-toggle-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
     transform: none !important;
+    background: linear-gradient(135deg, rgba(235, 93, 67, 0.5) 0%, rgba(217, 78, 55, 0.5) 100%);
+    box-shadow: none;
 }
 
 .notification-toggle-btn.danger {
-    background: #f44336;
+    background: linear-gradient(135deg, #FF0033 0%, #cc0029 100%);
+    box-shadow: 0 4px 16px rgba(255, 0, 51, 0.3);
 }
 
 .notification-toggle-btn.danger:hover {
-    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+    background: linear-gradient(135deg, #ff1a47 0%, #d9002e 100%);
+    box-shadow: 0 6px 20px rgba(255, 0, 51, 0.4);
 }
 
 .notification-section {
-    border-top: 1px solid var(--border);
-    padding-top: 20px;
+    border-top: 2px solid var(--border);
+    padding-top: 24px;
     margin-bottom: 20px;
 }
 
 .notification-section h3 {
-    font-size: 1.1em;
-    margin-bottom: 10px;
+    font-size: 1.15em;
+    font-weight: 700;
+    margin-bottom: 12px;
     color: var(--text-main);
+    letter-spacing: 0.3px;
 }
 
 /* Multiselect Dropdown */
@@ -322,54 +332,85 @@
 }
 
 /* Selected Timetables with Preferences */
+.selected-timetables-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 2px solid var(--border);
+}
+
+.selected-timetables-section h4 {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.selected-timetables-section h4::before {
+    content: '⚙️';
+    font-size: 1.2em;
+}
+
 .selected-timetables-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 }
 
 .timetable-preference-item {
     background: var(--card-bg);
-    border: 2px solid var(--border);
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
     overflow: hidden;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timetable-preference-item:hover {
+    border-color: rgba(235, 93, 67, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .timetable-preference-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 16px 20px;
     cursor: pointer;
-    background: var(--hover-bg);
-    transition: background 0.2s ease;
+    background: linear-gradient(135deg, rgba(0, 43, 79, 0.08) 0%, rgba(0, 43, 79, 0.04) 100%);
+    transition: all 0.2s ease;
 }
 
 .timetable-preference-header:hover {
-    background: rgba(0, 43, 79, 0.2);
+    background: linear-gradient(135deg, rgba(0, 43, 79, 0.12) 0%, rgba(0, 43, 79, 0.06) 100%);
 }
 
 .timetable-preference-header.expanded {
-    background: rgba(0, 43, 79, 0.25);
-    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(235, 93, 67, 0.1) 0%, rgba(235, 93, 67, 0.05) 100%);
+    border-bottom: 2px solid rgba(235, 93, 67, 0.2);
 }
 
 .timetable-preference-name {
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1.05em;
     color: var(--text-main);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
 }
 
 .timetable-preference-badge {
-    font-size: 0.75em;
-    padding: 3px 8px;
-    background: var(--accent);
+    font-size: 0.7em;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #EB5D43 0%, #d94e37 100%);
     color: white;
-    border-radius: 4px;
+    border-radius: 6px;
     font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(235, 93, 67, 0.3);
 }
 
 .timetable-preference-arrow {
@@ -382,9 +423,10 @@
 
 .timetable-preference-body {
     display: none;
-    padding: 16px;
-    gap: 16px;
+    padding: 20px;
+    gap: 20px;
     flex-direction: column;
+    background: rgba(0, 0, 0, 0.02);
 }
 
 .timetable-preference-body.expanded {
@@ -394,17 +436,24 @@
 .notification-type-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    padding: 16px;
+    background: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .notification-type-group-title {
-    font-size: 0.9em;
-    font-weight: 600;
-    color: var(--accent);
-    margin-bottom: 4px;
+    font-size: 0.95em;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
 }
 
 .notification-type-group-title svg {
@@ -414,36 +463,43 @@
 
 .notification-type-option {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: var(--bg-color);
-    border-radius: 6px;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
+    border: 2px solid transparent;
 }
 
 .notification-type-option:hover {
-    background: var(--hover-bg);
-    transform: translateX(2px);
+    background: rgba(0, 0, 0, 0.15);
+    border-color: rgba(235, 93, 67, 0.2);
+    transform: translateX(3px);
 }
 
 .notification-type-option input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
-    accent-color: var(--accent);
+    accent-color: #EB5D43;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 
 .notification-type-option label {
     flex: 1;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 0.95em;
     color: var(--text-main);
+    font-weight: 600;
 }
 
 .notification-type-option-description {
-    font-size: 0.75em;
+    font-size: 0.8em;
     color: var(--text-dim);
-    margin-top: 2px;
+    margin-top: 4px;
+    line-height: 1.4;
+    font-weight: 400;
 }

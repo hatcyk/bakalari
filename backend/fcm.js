@@ -23,12 +23,13 @@ async function sendNotificationToToken(token, notification) {
             },
             data: notification.data || {},
             token: token,
+            webpush: {
+                notification: {
+                    icon: notification.icon || '/icon-192.png',
+                    badge: '/icon-192.png'
+                }
+            }
         };
-
-        // Add icon and badge for better UX
-        if (notification.icon) {
-            message.notification.icon = notification.icon;
-        }
 
         const response = await messaging.send(message);
         console.log(`✅ Notification sent to token ${token.substring(0, 20)}...`);
@@ -62,11 +63,13 @@ async function sendNotificationToTokens(tokens, notification) {
             },
             data: notification.data || {},
             tokens: tokens,
+            webpush: {
+                notification: {
+                    icon: notification.icon || '/icon-192.png',
+                    badge: '/icon-192.png'
+                }
+            }
         };
-
-        if (notification.icon) {
-            message.notification.icon = notification.icon;
-        }
 
         const response = await messaging.sendEachForMulticast(message);
 

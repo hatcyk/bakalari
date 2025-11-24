@@ -136,6 +136,9 @@ export async function enableNotifications() {
     try {
         await requestNotificationPermission();
 
+        // Wait 2 seconds before allowing next action
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         // Restore button state before updating UI (button will be hidden by updateNotificationUIState)
         button.disabled = false;
         button.textContent = originalText;
@@ -148,6 +151,10 @@ export async function enableNotifications() {
         } else {
             alert('Nepodařilo se zapnout notifikace: ' + error.message);
         }
+
+        // Wait 2 seconds before allowing next action (even on error)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         // Re-enable button on error
         button.disabled = false;
         button.textContent = originalText;
@@ -172,10 +179,16 @@ export async function disableNotificationsHandler() {
     try {
         await disableNotifications();
 
+        // Wait 2 seconds before allowing next action
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         // Update UI after successful disable
         updateNotificationUIState();
     } catch (error) {
         alert('Nepodařilo se vypnout notifikace: ' + error.message);
+
+        // Wait 2 seconds before allowing next action (even on error)
+        await new Promise(resolve => setTimeout(resolve, 2000));
     } finally {
         // Re-enable button
         button.disabled = false;

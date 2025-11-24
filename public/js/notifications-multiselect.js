@@ -11,7 +11,21 @@ import { saveWatchedTimetables } from './notifications-core.js';
  * Populate multiselect dropdown options
  */
 export function populateMultiselectOptions() {
-    if (!dom.multiselectOptions || !state.definitions) return;
+    if (!dom.multiselectOptions) {
+        console.error('❌ multiselectOptions DOM element not found');
+        return;
+    }
+
+    if (!state.definitions) {
+        console.error('❌ state.definitions is not defined');
+        return;
+    }
+
+    console.log('✅ Populating multiselect with definitions:', {
+        classes: state.definitions.classes?.length || 0,
+        teachers: state.definitions.teachers?.length || 0,
+        rooms: state.definitions.rooms?.length || 0
+    });
 
     const scheduleTypes = [
         { value: 'Actual', label: 'Aktuální' },

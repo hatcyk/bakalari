@@ -103,6 +103,12 @@ async function init() {
         const definitions = await fetchDefinitions();
         updateState('definitions', definitions);
 
+        // Expose state and dom to window for debugging
+        if (typeof window !== 'undefined') {
+            window.debugState = state;
+            window.debugDom = dom;
+        }
+
         // Build teacher abbreviation map with collision detection
         const abbreviationMap = buildTeacherAbbreviationMap(definitions.teachers || []);
         updateState('teacherAbbreviationMap', abbreviationMap);

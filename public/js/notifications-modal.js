@@ -248,6 +248,24 @@ async function simulateTimetableChange() {
 }
 
 /**
+ * Update debug button text with current watched timetable
+ */
+function updateDebugButtonText() {
+    const button = document.getElementById('debugSimulateChange');
+    if (!button) return;
+
+    const watched = state.watchedTimetables?.[0];
+
+    if (watched) {
+        button.textContent = `🚀 Simulovat změnu: ${watched.name}`;
+        button.disabled = false;
+    } else {
+        button.textContent = '🚀 Simulovat změnu (nejdřív vyber rozvrh)';
+        button.disabled = true;
+    }
+}
+
+/**
  * Show/hide debug section based on DEBUG mode
  */
 function updateDebugSectionVisibility() {
@@ -264,6 +282,7 @@ function updateDebugSectionVisibility() {
         // If we get 403, debug mode is disabled
         if (response.status !== 403) {
             debugSection.style.display = 'block';
+            updateDebugButtonText();
         }
     }).catch(() => {
         // Network error or other issue - hide debug section
@@ -282,6 +301,7 @@ export function initNotificationButton() {
     // Listen for changes in watched timetables to update button state
     window.addEventListener('watchedTimetablesChanged', () => {
         updateEnableButtonState();
+        updateDebugButtonText();
     });
 
     // Initialize debug simulate button

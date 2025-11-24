@@ -316,8 +316,8 @@ export function renderTimetable(data) {
                         cardClass += ' upcoming';
                     }
 
-                    // Označení proběhlých hodin
-                    if (isPastLesson(dayIndex, hour)) {
+                    // Označení proběhlých hodin (pouze v aktuálním rozvrhu)
+                    if (state.selectedScheduleType === 'actual' && isPastLesson(dayIndex, hour)) {
                         cardClass += ' past';
                     }
 

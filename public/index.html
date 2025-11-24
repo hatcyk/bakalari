@@ -209,18 +209,36 @@
                     Dostávejte notifikace o změnách v rozvrhu - odpadlé hodiny, suplování, změny místností a další.
                 </p>
 
-                <div class="notification-section">
+                <button id="notificationToggleEnable" class="notification-toggle-btn">
+                    Zapnout notifikace
+                </button>
+
+                <div class="notification-section" id="notificationSection" style="display: none;">
                     <h3>Sledované rozvrhy</h3>
                     <p style="font-size: 0.9em; opacity: 0.8; margin-bottom: 10px;">
                         Vyberte rozvrhy, pro které chcete dostávat notifikace:
                     </p>
-                    <div id="watchedTimetablesList" class="watched-timetables-list">
-                        <!-- Will be populated dynamically -->
+
+                    <div class="multiselect-dropdown" id="timetablesMultiselect">
+                        <button class="multiselect-trigger" id="multiselectTrigger">
+                            <span id="multiselectLabel">Vyberte rozvrhy...</span>
+                            <svg class="multiselect-arrow" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="multiselect-menu" id="multiselectMenu">
+                            <div class="multiselect-search">
+                                <input type="text" id="multiselectSearch" placeholder="Hledat...">
+                            </div>
+                            <div class="multiselect-options" id="multiselectOptions">
+                                <!-- Will be populated dynamically -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <button id="notificationToggle" class="notification-toggle-btn">
-                    Zapnout notifikace
+                <button id="notificationToggleDisable" class="notification-toggle-btn danger" style="display: none;">
+                    Vypnout notifikace
                 </button>
             </div>
         </div>

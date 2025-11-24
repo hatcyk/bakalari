@@ -19,9 +19,16 @@ export const dom = {
     notificationBell: null,
     notificationModal: null,
     notificationModalClose: null,
-    notificationToggle: null,
+    notificationToggleEnable: null,
+    notificationToggleDisable: null,
+    notificationSection: null,
     iosWarning: null,
-    watchedTimetablesList: null
+    watchedTimetablesList: null,
+    multiselectTrigger: null,
+    multiselectLabel: null,
+    multiselectMenu: null,
+    multiselectSearch: null,
+    multiselectOptions: null
 };
 
 // Initialize DOM references
@@ -45,9 +52,16 @@ export function initDOM() {
     dom.notificationBell = document.getElementById('notificationBell');
     dom.notificationModal = document.getElementById('notificationModal');
     dom.notificationModalClose = document.getElementById('notificationModalClose');
-    dom.notificationToggle = document.getElementById('notificationToggle');
+    dom.notificationToggleEnable = document.getElementById('notificationToggleEnable');
+    dom.notificationToggleDisable = document.getElementById('notificationToggleDisable');
+    dom.notificationSection = document.getElementById('notificationSection');
     dom.iosWarning = document.getElementById('iosWarning');
     dom.watchedTimetablesList = document.getElementById('watchedTimetablesList');
+    dom.multiselectTrigger = document.getElementById('multiselectTrigger');
+    dom.multiselectLabel = document.getElementById('multiselectLabel');
+    dom.multiselectMenu = document.getElementById('multiselectMenu');
+    dom.multiselectSearch = document.getElementById('multiselectSearch');
+    dom.multiselectOptions = document.getElementById('multiselectOptions');
 
     // Check if modal elements exist
     if (!dom.lessonModal || !dom.modalClose) {

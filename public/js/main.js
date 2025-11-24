@@ -8,7 +8,7 @@ import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } 
 import { buildTeacherAbbreviationMap, shouldAutoSwitchToNextWeek } from './utils.js';
 import { initSunData } from './suntime.js';
 import { initializeFirebase, authenticateWithFirebase } from './firebase-client.js';
-import { registerServiceWorker, initializeMessaging, initNotificationButton, showNotificationModal, closeNotificationModal, toggleNotifications } from './notifications.js';
+import { registerServiceWorker, initializeMessaging, initNotificationButton, showNotificationModal, closeNotificationModal, enableNotifications, disableNotificationsHandler, toggleMultiselect, filterMultiselectOptions } from './notifications.js';
 
 // Type button handlers
 function updateTypeButtons() {
@@ -120,8 +120,19 @@ async function init() {
         if (dom.notificationModalClose) {
             dom.notificationModalClose.addEventListener('click', closeNotificationModal);
         }
-        if (dom.notificationToggle) {
-            dom.notificationToggle.addEventListener('click', toggleNotifications);
+        if (dom.notificationToggleEnable) {
+            dom.notificationToggleEnable.addEventListener('click', enableNotifications);
+        }
+        if (dom.notificationToggleDisable) {
+            dom.notificationToggleDisable.addEventListener('click', disableNotificationsHandler);
+        }
+        if (dom.multiselectTrigger) {
+            dom.multiselectTrigger.addEventListener('click', toggleMultiselect);
+        }
+        if (dom.multiselectSearch) {
+            dom.multiselectSearch.addEventListener('input', (e) => {
+                filterMultiselectOptions(e.target.value);
+            });
         }
         if (dom.notificationModal) {
             dom.notificationModal.addEventListener('click', (e) => {
@@ -130,6 +141,16 @@ async function init() {
                 }
             });
         }
+        // Close multiselect when clicking outside
+        document.addEventListener('click', (e) => {
+            if (dom.multiselectTrigger && dom.multiselectMenu) {
+                if (!dom.multiselectTrigger.contains(e.target) && !dom.multiselectMenu.contains(e.target)) {
+                    if (dom.multiselectMenu.classList.contains('active')) {
+                        toggleMultiselect();
+                    }
+                }
+            }
+        });
 
         // Restore saved selection
         const savedType = localStorage.getItem('selectedType');

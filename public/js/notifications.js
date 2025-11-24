@@ -244,29 +244,31 @@ function updateNotificationModalContent() {
         }
     }
 
-    // Update enable/disable button
-    if (dom.notificationToggle) {
-        if (state.notificationsEnabled) {
-            dom.notificationToggle.textContent = 'Vypnout notifikace';
-            dom.notificationToggle.classList.add('danger');
-        } else {
-            dom.notificationToggle.textContent = 'Zapnout notifikace';
-            dom.notificationToggle.classList.remove('danger');
-        }
+    // Update button visibility based on notification state
+    if (state.notificationsEnabled) {
+        // Show disable button and dropdown
+        if (dom.notificationToggleEnable) dom.notificationToggleEnable.style.display = 'none';
+        if (dom.notificationToggleDisable) dom.notificationToggleDisable.style.display = 'block';
+        if (dom.notificationSection) dom.notificationSection.style.display = 'block';
+    } else {
+        // Show enable button only
+        if (dom.notificationToggleEnable) dom.notificationToggleEnable.style.display = 'block';
+        if (dom.notificationToggleDisable) dom.notificationToggleDisable.style.display = 'none';
+        if (dom.notificationSection) dom.notificationSection.style.display = 'none';
     }
 
     // Populate timetable selection list
-    populateWatchedTimetablesList();
-
-    // Load watched timetables
-    loadWatchedTimetables();
+    if (state.notificationsEnabled) {
+        populateMultiselectOptions();
+        loadWatchedTimetables();
+    }
 }
 
 /**
- * Toggle notifications on/off
+ * Toggle notifications on/off - Enable
  */
-export async function toggleNotifications() {
-    const button = dom.notificationToggle;
+export async function enableNotifications() {
+    const button = dom.notificationToggleEnable;
     if (!button) return;
 
     // Disable button during processing to prevent spam clicks
@@ -275,14 +277,8 @@ export async function toggleNotifications() {
     button.textContent = 'Zpracovávám...';
 
     try {
-        if (state.notificationsEnabled) {
-            await disableNotifications();
-        } else {
-            await requestNotificationPermission();
-        }
-
+        await requestNotificationPermission();
         updateNotificationModalContent();
-
     } catch (error) {
         if (error.message === 'IOS_NOT_STANDALONE') {
             alert('Na iOS musíte nejdřív přidat web na plochu (Home Screen). Klikněte na tlačítko "Sdílet" a pak "Přidat na plochu".');
@@ -297,10 +293,34 @@ export async function toggleNotifications() {
 }
 
 /**
- * Populate the timetables selection list with all available options
+ * Toggle notifications on/off - Disable
  */
-function populateWatchedTimetablesList() {
-    if (!dom.watchedTimetablesList || !state.definitions) return;
+export async function disableNotificationsHandler() {
+    const button = dom.notificationToggleDisable;
+    if (!button) return;
+
+    // Disable button during processing to prevent spam clicks
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = 'Zpracovávám...';
+
+    try {
+        await disableNotifications();
+        updateNotificationModalContent();
+    } catch (error) {
+        alert('Nepodařilo se vypnout notifikace: ' + error.message);
+    } finally {
+        // Re-enable button
+        button.disabled = false;
+        button.textContent = originalText;
+    }
+}
+
+/**
+ * Populate multiselect dropdown options
+ */
+function populateMultiselectOptions() {
+    if (!dom.multiselectOptions || !state.definitions) return;
 
     const scheduleTypes = [
         { value: 'Actual', label: 'Aktuální' },
@@ -312,13 +332,13 @@ function populateWatchedTimetablesList() {
 
     // Add Classes section
     if (state.definitions.classes && state.definitions.classes.length > 0) {
-        html += '<div class="timetable-category"><h4>Třídy</h4>';
+        html += '<div class="multiselect-category">Třídy</div>';
 
         state.definitions.classes.forEach(item => {
             scheduleTypes.forEach(schedule => {
                 const id = `watch_Class_${item.id}_${schedule.value}`;
                 html += `
-                    <label class="watched-timetable-item">
+                    <label class="multiselect-option">
                         <input type="checkbox"
                                id="${id}"
                                data-type="Class"
@@ -330,19 +350,17 @@ function populateWatchedTimetablesList() {
                 `;
             });
         });
-
-        html += '</div>';
     }
 
     // Add Teachers section
     if (state.definitions.teachers && state.definitions.teachers.length > 0) {
-        html += '<div class="timetable-category"><h4>Učitelé</h4>';
+        html += '<div class="multiselect-category">Učitelé</div>';
 
         state.definitions.teachers.forEach(item => {
             scheduleTypes.forEach(schedule => {
                 const id = `watch_Teacher_${item.id}_${schedule.value}`;
                 html += `
-                    <label class="watched-timetable-item">
+                    <label class="multiselect-option">
                         <input type="checkbox"
                                id="${id}"
                                data-type="Teacher"
@@ -354,19 +372,17 @@ function populateWatchedTimetablesList() {
                 `;
             });
         });
-
-        html += '</div>';
     }
 
     // Add Rooms section
     if (state.definitions.rooms && state.definitions.rooms.length > 0) {
-        html += '<div class="timetable-category"><h4>Místnosti</h4>';
+        html += '<div class="multiselect-category">Místnosti</div>';
 
         state.definitions.rooms.forEach(item => {
             scheduleTypes.forEach(schedule => {
                 const id = `watch_Room_${item.id}_${schedule.value}`;
                 html += `
-                    <label class="watched-timetable-item">
+                    <label class="multiselect-option">
                         <input type="checkbox"
                                id="${id}"
                                data-type="Room"
@@ -378,23 +394,21 @@ function populateWatchedTimetablesList() {
                 `;
             });
         });
-
-        html += '</div>';
     }
 
-    dom.watchedTimetablesList.innerHTML = html;
+    dom.multiselectOptions.innerHTML = html;
 
     // Add event listeners to all checkboxes
-    const checkboxes = dom.watchedTimetablesList.querySelectorAll('input[type="checkbox"]');
+    const checkboxes = dom.multiselectOptions.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', handleWatchedTimetableChange);
+        checkbox.addEventListener('change', handleMultiselectChange);
     });
 }
 
 /**
- * Handle checkbox change for watched timetables
+ * Handle checkbox change in multiselect
  */
-async function handleWatchedTimetableChange(event) {
+async function handleMultiselectChange(event) {
     const checkbox = event.target;
     const type = checkbox.dataset.type;
     const id = checkbox.dataset.id;
@@ -424,12 +438,113 @@ async function handleWatchedTimetableChange(event) {
     // Save to server
     try {
         await saveWatchedTimetables(watchedTimetables);
+        updateMultiselectLabel();
         console.log('Watched timetables updated:', watchedTimetables);
     } catch (error) {
         console.error('Failed to save watched timetables:', error);
         // Revert checkbox state on error
         checkbox.checked = !checkbox.checked;
     }
+}
+
+/**
+ * Update multiselect label based on selected items
+ */
+function updateMultiselectLabel() {
+    if (!dom.multiselectLabel) return;
+
+    const count = state.watchedTimetables.length;
+
+    if (count === 0) {
+        dom.multiselectLabel.textContent = 'Vyberte rozvrhy...';
+    } else if (count === 1) {
+        const item = state.watchedTimetables[0];
+        dom.multiselectLabel.textContent = `${item.name} - ${item.scheduleType}`;
+    } else {
+        dom.multiselectLabel.textContent = `${count} rozvrhů vybráno`;
+    }
+}
+
+/**
+ * Toggle multiselect dropdown
+ */
+export function toggleMultiselect() {
+    if (!dom.multiselectTrigger || !dom.multiselectMenu) return;
+
+    const isActive = dom.multiselectMenu.classList.contains('active');
+
+    if (isActive) {
+        closeMultiselect();
+    } else {
+        openMultiselect();
+    }
+}
+
+/**
+ * Open multiselect dropdown
+ */
+function openMultiselect() {
+    if (!dom.multiselectTrigger || !dom.multiselectMenu) return;
+
+    dom.multiselectTrigger.classList.add('active');
+    dom.multiselectMenu.classList.add('active');
+
+    // Focus search input
+    if (dom.multiselectSearch) {
+        setTimeout(() => dom.multiselectSearch.focus(), 100);
+    }
+}
+
+/**
+ * Close multiselect dropdown
+ */
+function closeMultiselect() {
+    if (!dom.multiselectTrigger || !dom.multiselectMenu) return;
+
+    dom.multiselectTrigger.classList.remove('active');
+    dom.multiselectMenu.classList.remove('active');
+
+    // Clear search
+    if (dom.multiselectSearch) {
+        dom.multiselectSearch.value = '';
+        filterMultiselectOptions('');
+    }
+}
+
+/**
+ * Filter multiselect options based on search
+ */
+export function filterMultiselectOptions(searchTerm) {
+    if (!dom.multiselectOptions) return;
+
+    const options = dom.multiselectOptions.querySelectorAll('.multiselect-option');
+    const categories = dom.multiselectOptions.querySelectorAll('.multiselect-category');
+    const term = searchTerm.toLowerCase();
+
+    options.forEach(option => {
+        const label = option.querySelector('span').textContent.toLowerCase();
+        if (label.includes(term)) {
+            option.style.display = 'flex';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+
+    // Hide categories if all options are hidden
+    categories.forEach(category => {
+        let nextElement = category.nextElementSibling;
+        let hasVisibleOptions = false;
+
+        while (nextElement && !nextElement.classList.contains('multiselect-category')) {
+            if (nextElement.style.display !== 'none') {
+                hasVisibleOptions = true;
+                break;
+            }
+            nextElement = nextElement.nextElementSibling;
+        }
+
+        category.style.display = hasVisibleOptions ? 'block' : 'none';
+    });
 }
 
 /**
@@ -462,11 +577,10 @@ async function loadWatchedTimetables() {
  * Update watched timetables UI
  */
 function updateWatchedTimetablesUI() {
-    if (!dom.watchedTimetablesList) return;
+    if (!dom.multiselectOptions) return;
 
-    // This will be called after modal is fully loaded
     // Update checkboxes based on state.watchedTimetables
-    const checkboxes = dom.watchedTimetablesList.querySelectorAll('input[type="checkbox"]');
+    const checkboxes = dom.multiselectOptions.querySelectorAll('input[type="checkbox"]');
 
     checkboxes.forEach(checkbox => {
         const type = checkbox.dataset.type;
@@ -481,6 +595,9 @@ function updateWatchedTimetablesUI() {
 
         checkbox.checked = isWatched;
     });
+
+    // Update label
+    updateMultiselectLabel();
 }
 
 /**

@@ -140,12 +140,12 @@ export function closeLessonModal() {
         // Add closing animation
         dom.lessonModal.classList.add('modal-closing');
 
-        // Wait for animation to complete before hiding
+        // Wait for animation to complete before hiding (250ms to prevent race condition)
         setTimeout(() => {
             dom.lessonModal.classList.remove('modal-closing');
             dom.lessonModal.classList.add('hidden');
             dom.lessonModal.style.display = 'none';
-        }, 200);
+        }, 250);
     }
 }
 

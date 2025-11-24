@@ -17,11 +17,12 @@ async function sendNotificationToToken(token, notification) {
         const messaging = getMessaging();
 
         const message = {
-            notification: {
+            data: {
                 title: notification.title,
                 body: notification.body,
+                icon: notification.icon || '/icon-192.png',
+                ...(notification.data || {})
             },
-            data: notification.data || {},
             token: token,
             webpush: {
                 notification: {
@@ -57,11 +58,12 @@ async function sendNotificationToTokens(tokens, notification) {
         const messaging = getMessaging();
 
         const message = {
-            notification: {
+            data: {
                 title: notification.title,
                 body: notification.body,
+                icon: notification.icon || '/icon-192.png',
+                ...(notification.data || {})
             },
-            data: notification.data || {},
             tokens: tokens,
             webpush: {
                 notification: {

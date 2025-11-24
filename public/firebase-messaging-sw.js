@@ -28,10 +28,10 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
-    const notificationTitle = payload.notification?.title || 'Nová notifikace';
+    const notificationTitle = payload.data?.title || 'Nová notifikace';
     const notificationOptions = {
-        body: payload.notification?.body || '',
-        icon: payload.notification?.icon || '/icon-192.png',
+        body: payload.data?.body || '',
+        icon: payload.data?.icon || '/icon-192.png',
         badge: '/icon-192.png',
         vibrate: [100, 50, 100],
         data: payload.data || {},

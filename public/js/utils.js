@@ -59,10 +59,21 @@ export function standardizeGroupName(groupName) {
 function removeTeacherTitles(fullName) {
     if (!fullName) return '';
 
-    return fullName
-        .replace(/^(Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.)+\s*/gi, '')
-        .replace(/,?\s*(Ph\.D\.|CSc\.)$/gi, '')
-        .trim();
+    // Remove titles from the beginning (handles multiple titles with spaces)
+    // Example: "Ing. Bc. Jan Tesař" → "Jan Tesař"
+    let cleaned = fullName.replace(/^(?:Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.|MBA)\s+/gi, '');
+
+    // Keep removing titles until no more are found at the start
+    let prevCleaned = '';
+    while (prevCleaned !== cleaned) {
+        prevCleaned = cleaned;
+        cleaned = cleaned.replace(/^(?:Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.|MBA)\s+/gi, '');
+    }
+
+    // Remove titles from the end (after comma or space)
+    cleaned = cleaned.replace(/,?\s*(?:Ph\.D\.|CSc\.|MBA)$/gi, '');
+
+    return cleaned.trim();
 }
 
 // Detect if name is in reversed format (Surname First)

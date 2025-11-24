@@ -624,6 +624,65 @@ app.get('/api/debug/pending-changes', requireDebugMode, async (req, res) => {
     }
 });
 
+// Simulate timetable change and send notifications immediately
+app.post('/api/debug/simulate-change', requireDebugMode, async (req, res) => {
+    try {
+        const { timetableType, timetableId, timetableName, scheduleType } = req.body;
+
+        const db = getFirestore();
+
+        // Create fake change
+        const fakeChange = {
+            timetable: {
+                type: timetableType || 'Class',
+                id: timetableId || 'TEST',
+                name: timetableName || 'Testovací třída',
+                scheduleType: scheduleType || 'Actual'
+            },
+            changes: [
+                {
+                    type: 'lesson_removed',
+                    day: 1,
+                    dayName: 'út',
+                    hour: 3,
+                    description: '🧪 DEBUG: Odpadla hodina: Matematika',
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    type: 'substitution',
+                    day: 2,
+                    dayName: 'st',
+                    hour: 2,
+                    description: '🧪 DEBUG: Suplování: Fyzika',
+                    timestamp: new Date().toISOString()
+                }
+            ],
+            timestamp: new Date().toISOString(),
+            sent: false
+        };
+
+        // Save to Firestore
+        const changeRef = await db.collection('changes').add(fakeChange);
+        console.log(`✅ Fake change created: ${changeRef.id}`);
+
+        // Process immediately
+        console.log('🔔 Processing fake change and sending notifications...');
+        const result = await processPendingChanges();
+
+        res.json({
+            success: true,
+            message: 'Fake change created and notifications sent',
+            changeId: changeRef.id,
+            change: fakeChange,
+            notificationResult: result
+        });
+
+    } catch (error) {
+        console.error('Simulate change error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Clear all pending changes
 app.delete('/api/debug/clear-changes', requireDebugMode, async (req, res) => {
     try {

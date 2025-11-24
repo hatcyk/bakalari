@@ -197,6 +197,81 @@ export async function disableNotificationsHandler() {
 }
 
 /**
+ * Simulate timetable change (DEBUG only)
+ */
+async function simulateTimetableChange() {
+    const button = document.getElementById('debugSimulateChange');
+    if (!button) return;
+
+    // Get first watched timetable
+    const watched = state.watchedTimetables?.[0];
+    if (!watched) {
+        alert('Nejdřív musíš sledovat alespoň jeden rozvrh!');
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = '⏳ Vytvářím změnu...';
+
+    try {
+        const response = await fetch('/api/debug/simulate-change', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                timetableType: watched.type,
+                timetableId: watched.id,
+                timetableName: watched.name,
+                scheduleType: watched.scheduleType
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to simulate change');
+        }
+
+        const result = await response.json();
+
+        console.log('✅ Simulated change result:', result);
+
+        alert(`✅ Hotovo!\n\n` +
+              `Změna vytvořena pro: ${watched.name}\n` +
+              `Notifikace poslány: ${result.notificationResult?.sentCount || 0}x\n` +
+              `Zpracováno změn: ${result.notificationResult?.processedCount || 0}`);
+
+    } catch (error) {
+        console.error('Failed to simulate change:', error);
+        alert('❌ Chyba při simulaci změny: ' + error.message);
+    } finally {
+        button.disabled = false;
+        button.textContent = '🚀 Simulovat změnu v rozvrhu';
+    }
+}
+
+/**
+ * Show/hide debug section based on DEBUG mode
+ */
+function updateDebugSectionVisibility() {
+    const debugSection = document.getElementById('debugSimulateSection');
+    if (!debugSection) return;
+
+    // Check if in debug mode by trying to access debug endpoint
+    fetch('/api/debug/test-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: 'test' })
+    }).then(response => {
+        // If we get 200 or 500, debug mode is enabled
+        // If we get 403, debug mode is disabled
+        if (response.status !== 403) {
+            debugSection.style.display = 'block';
+        }
+    }).catch(() => {
+        // Network error or other issue - hide debug section
+        debugSection.style.display = 'none';
+    });
+}
+
+/**
  * Initialize event listeners
  */
 export function initNotificationButton() {
@@ -208,4 +283,13 @@ export function initNotificationButton() {
     window.addEventListener('watchedTimetablesChanged', () => {
         updateEnableButtonState();
     });
+
+    // Initialize debug simulate button
+    const debugButton = document.getElementById('debugSimulateChange');
+    if (debugButton) {
+        debugButton.addEventListener('click', simulateTimetableChange);
+    }
+
+    // Check debug mode and show/hide debug section
+    updateDebugSectionVisibility();
 }

@@ -197,20 +197,92 @@ export async function disableNotificationsHandler() {
 }
 
 /**
+ * Populate debug timetable selector
+ */
+function populateDebugTimetableSelect() {
+    const select = document.getElementById('debugTimetableSelect');
+    if (!select || !state.definitions) return;
+
+    const scheduleTypes = [
+        { value: 'Actual', label: 'Aktuální' },
+        { value: 'Next', label: 'Příští' }
+    ];
+
+    let html = '<option value="">-- Vyber rozvrh --</option>';
+
+    // Add Classes
+    if (state.definitions.classes && state.definitions.classes.length > 0) {
+        html += '<optgroup label="Třídy">';
+        state.definitions.classes.forEach(item => {
+            scheduleTypes.forEach(schedule => {
+                const value = JSON.stringify({
+                    type: 'Class',
+                    id: item.id,
+                    name: item.name,
+                    scheduleType: schedule.value
+                });
+                html += `<option value='${value}'>${item.name} - ${schedule.label}</option>`;
+            });
+        });
+        html += '</optgroup>';
+    }
+
+    // Add Teachers
+    if (state.definitions.teachers && state.definitions.teachers.length > 0) {
+        html += '<optgroup label="Učitelé">';
+        state.definitions.teachers.forEach(item => {
+            scheduleTypes.forEach(schedule => {
+                const value = JSON.stringify({
+                    type: 'Teacher',
+                    id: item.id,
+                    name: item.name,
+                    scheduleType: schedule.value
+                });
+                html += `<option value='${value}'>${item.name} - ${schedule.label}</option>`;
+            });
+        });
+        html += '</optgroup>';
+    }
+
+    // Add Rooms
+    if (state.definitions.rooms && state.definitions.rooms.length > 0) {
+        html += '<optgroup label="Místnosti">';
+        state.definitions.rooms.forEach(item => {
+            scheduleTypes.forEach(schedule => {
+                const value = JSON.stringify({
+                    type: 'Room',
+                    id: item.id,
+                    name: item.name,
+                    scheduleType: schedule.value
+                });
+                html += `<option value='${value}'>${item.name} - ${schedule.label}</option>`;
+            });
+        });
+        html += '</optgroup>';
+    }
+
+    select.innerHTML = html;
+}
+
+/**
  * Simulate timetable change (DEBUG only)
  */
 async function simulateTimetableChange() {
     const button = document.getElementById('debugSimulateChange');
-    if (!button) return;
+    const select = document.getElementById('debugTimetableSelect');
+    if (!button || !select) return;
 
-    // Get first watched timetable
-    const watched = state.watchedTimetables?.[0];
-    if (!watched) {
-        alert('Nejdřív musíš sledovat alespoň jeden rozvrh!');
+    // Get selected timetable from dropdown
+    const selectedValue = select.value;
+    if (!selectedValue) {
+        alert('Nejdřív vyber rozvrh z dropdownu!');
         return;
     }
 
+    const timetable = JSON.parse(selectedValue);
+
     button.disabled = true;
+    const originalText = button.textContent;
     button.textContent = '⏳ Vytvářím změnu...';
 
     try {
@@ -218,10 +290,10 @@ async function simulateTimetableChange() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                timetableType: watched.type,
-                timetableId: watched.id,
-                timetableName: watched.name,
-                scheduleType: watched.scheduleType
+                timetableType: timetable.type,
+                timetableId: timetable.id,
+                timetableName: timetable.name,
+                scheduleType: timetable.scheduleType
             })
         });
 
@@ -234,7 +306,7 @@ async function simulateTimetableChange() {
         console.log('✅ Simulated change result:', result);
 
         alert(`✅ Hotovo!\n\n` +
-              `Změna vytvořena pro: ${watched.name}\n` +
+              `Změna vytvořena pro: ${timetable.name}\n` +
               `Notifikace poslány: ${result.notificationResult?.sentCount || 0}x\n` +
               `Zpracováno změn: ${result.notificationResult?.processedCount || 0}`);
 
@@ -243,25 +315,7 @@ async function simulateTimetableChange() {
         alert('❌ Chyba při simulaci změny: ' + error.message);
     } finally {
         button.disabled = false;
-        button.textContent = '🚀 Simulovat změnu v rozvrhu';
-    }
-}
-
-/**
- * Update debug button text with current watched timetable
- */
-function updateDebugButtonText() {
-    const button = document.getElementById('debugSimulateChange');
-    if (!button) return;
-
-    const watched = state.watchedTimetables?.[0];
-
-    if (watched) {
-        button.textContent = `🚀 Simulovat změnu: ${watched.name}`;
-        button.disabled = false;
-    } else {
-        button.textContent = '🚀 Simulovat změnu (nejdřív vyber rozvrh)';
-        button.disabled = true;
+        button.textContent = originalText;
     }
 }
 
@@ -282,7 +336,7 @@ function updateDebugSectionVisibility() {
         // If we get 403, debug mode is disabled
         if (response.status !== 403) {
             debugSection.style.display = 'block';
-            updateDebugButtonText();
+            populateDebugTimetableSelect();
         }
     }).catch(() => {
         // Network error or other issue - hide debug section
@@ -301,7 +355,6 @@ export function initNotificationButton() {
     // Listen for changes in watched timetables to update button state
     window.addEventListener('watchedTimetablesChanged', () => {
         updateEnableButtonState();
-        updateDebugButtonText();
     });
 
     // Initialize debug simulate button

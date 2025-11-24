@@ -244,6 +244,17 @@
                 <!-- Debug: Simulate Change Button (only visible in DEBUG mode) -->
                 <div id="debugSimulateSection" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px dashed #666;">
                     <h3 style="font-size: 0.9em; color: #ff9800; margin-bottom: 10px;">🧪 DEBUG MODE</h3>
+
+                    <!-- Debug Timetable Selector -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 0.9em; color: var(--text-main);">
+                            Vyber rozvrh pro simulaci:
+                        </label>
+                        <select id="debugTimetableSelect" style="width: 100%; padding: 12px; background: var(--card-bg); border: 2px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 1em;">
+                            <option value="">Načítám rozvrhy...</option>
+                        </select>
+                    </div>
+
                     <button id="debugSimulateChange" class="notification-toggle-btn" style="background: #ff9800;">
                         🚀 Simulovat změnu v rozvrhu
                     </button>

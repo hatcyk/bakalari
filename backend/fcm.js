@@ -23,13 +23,7 @@ async function sendNotificationToToken(token, notification) {
                 icon: notification.icon || '/icon-192.png',
                 ...(notification.data || {})
             },
-            token: token,
-            webpush: {
-                notification: {
-                    icon: notification.icon || '/icon-192.png',
-                    badge: '/icon-192.png'
-                }
-            }
+            token: token
         };
 
         const response = await messaging.send(message);
@@ -64,13 +58,7 @@ async function sendNotificationToTokens(tokens, notification) {
                 icon: notification.icon || '/icon-192.png',
                 ...(notification.data || {})
             },
-            tokens: tokens,
-            webpush: {
-                notification: {
-                    icon: notification.icon || '/icon-192.png',
-                    badge: '/icon-192.png'
-                }
-            }
+            tokens: tokens
         };
 
         const response = await messaging.sendEachForMulticast(message);

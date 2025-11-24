@@ -76,7 +76,7 @@ export function createDaySelector() {
         const btn = document.createElement('button');
         btn.textContent = day;
         btn.className = index === state.selectedDayIndex ? 'active' : '';
-        if (index === todayIndex) {
+        if (index === todayIndex && state.selectedScheduleType === 'actual') {
             btn.classList.add('today-btn');
         }
         btn.addEventListener('click', () => selectDay(index));
@@ -208,8 +208,8 @@ export function renderTimetable(data) {
         const row = document.createElement('div');
         row.className = 'timetable-row';
 
-        // Zvýraznění dnešního řádku
-        if (dayIndex === todayIndex) {
+        // Zvýraznění dnešního řádku (pouze v aktuálním rozvrhu)
+        if (dayIndex === todayIndex && state.selectedScheduleType === 'actual') {
             row.classList.add('today-row');
         }
 
@@ -244,7 +244,7 @@ export function renderTimetable(data) {
             <div class="day-name-container">
                 <div style="font-weight: 700;">${day}</div>
                 ${dateStr ? `<div style="font-size: 0.7rem; opacity: 0.7; margin-top: 2px;">${dateStr}</div>` : ''}
-                ${dayIndex === todayIndex ? '<div class="today-badge">DNES</div>' : ''}
+                ${dayIndex === todayIndex && state.selectedScheduleType === 'actual' ? '<div class="today-badge">DNES</div>' : ''}
             </div>
         `;
         row.appendChild(dayCell);
@@ -290,7 +290,7 @@ export function renderTimetable(data) {
                 const lessonCell = document.createElement('div');
                 lessonCell.className = 'lesson-cell';
 
-                if (dayIndex === todayIndex) {
+                if (dayIndex === todayIndex && state.selectedScheduleType === 'actual') {
                     lessonCell.classList.add('today');
                 }
 
@@ -306,13 +306,13 @@ export function renderTimetable(data) {
                     if (lesson.type === 'removed') cardClass += ' removed';
                     if (lesson.type === 'absent') cardClass += ' absent';
 
-                    // Zvýraznění aktuální hodiny
-                    if (dayIndex === todayIndex && hour === currentHour) {
+                    // Zvýraznění aktuální hodiny (pouze v aktuálním rozvrhu)
+                    if (state.selectedScheduleType === 'actual' && dayIndex === todayIndex && hour === currentHour) {
                         cardClass += ' current-time';
                     }
 
-                    // Zvýraznění nadcházející hodiny
-                    if (dayIndex === todayIndex && hour === upcomingHour && hour !== currentHour) {
+                    // Zvýraznění nadcházející hodiny (pouze v aktuálním rozvrhu)
+                    if (state.selectedScheduleType === 'actual' && dayIndex === todayIndex && hour === upcomingHour && hour !== currentHour) {
                         cardClass += ' upcoming';
                     }
 

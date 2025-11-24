@@ -8,7 +8,7 @@ import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } 
 import { buildTeacherAbbreviationMap, shouldAutoSwitchToNextWeek } from './utils.js';
 import { initSunData } from './suntime.js';
 import { initializeFirebase, authenticateWithFirebase } from './firebase-client.js';
-import { registerServiceWorker, initializeMessaging, initNotificationButton, showNotificationModal, closeNotificationModal, enableNotifications, disableNotificationsHandler, toggleMultiselect, filterMultiselectOptions } from './notifications.js';
+import { registerServiceWorker, initializeMessaging, initNotificationButton, showNotificationModal, closeNotificationModal, enableNotifications, disableNotificationsHandler, toggleMultiselect, filterMultiselectOptions, setupMultiselectGlobalListeners } from './notifications.js';
 import { initSettings } from './settings.js';
 
 /**
@@ -166,6 +166,7 @@ async function init() {
         initScheduleTypeButtons();
         initWeekViewToggle();
         initNotificationButton();
+        setupMultiselectGlobalListeners();
         initSettings();
 
         // Initialize notification modal listeners

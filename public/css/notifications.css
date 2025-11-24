@@ -159,19 +159,17 @@
 
 .multiselect-menu {
     display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+    position: fixed;  /* Changed from absolute to fixed */
+    left: auto;
+    right: auto;
     background: var(--card-bg);
     border: 2px solid var(--accent);
-    border-top: none;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
+    border-radius: 8px;
     max-height: 400px;
     overflow: hidden;
-    z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 10000;  /* Much higher to be above everything */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
 }
 
 .multiselect-menu.active {

@@ -32,5 +32,6 @@ export {
     updateMultiselectLabel,
     updateMultiselectCheckboxes,
     toggleMultiselect,
-    filterMultiselectOptions
+    filterMultiselectOptions,
+    setupMultiselectGlobalListeners
 } from './notifications-multiselect.js';

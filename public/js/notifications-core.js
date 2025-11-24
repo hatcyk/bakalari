@@ -4,6 +4,7 @@
  */
 
 import { state, updateState } from './state.js';
+import { debug } from './debug.js';
 
 let messaging = null;
 let fcmToken = null;
@@ -38,16 +39,16 @@ export function isStandalone() {
 export async function initializeMessaging() {
     try {
         if (!firebase || !firebase.messaging) {
-            console.error('Firebase Messaging not available');
+            debug.error('Firebase Messaging not available');
             return false;
         }
 
         messaging = firebase.messaging();
-        console.log('✅ Firebase Messaging initialized');
+        debug.log('✅ Firebase Messaging initialized');
         return true;
 
     } catch (error) {
-        console.error('Failed to initialize Firebase Messaging:', error);
+        debug.error('Failed to initialize Firebase Messaging:', error);
         return false;
     }
 }
@@ -59,7 +60,7 @@ export async function initializeMessaging() {
 export async function registerServiceWorker() {
     try {
         if (!('serviceWorker' in navigator)) {
-            console.warn('Service Worker not supported');
+            debug.warn('Service Worker not supported');
             return null;
         }
 
@@ -68,21 +69,21 @@ export async function registerServiceWorker() {
 
         if (!registration) {
             // Register Firebase Messaging service worker
-            console.log('📝 Registering Firebase Messaging Service Worker...');
+            debug.log('📝 Registering Firebase Messaging Service Worker...');
             registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-            console.log('✅ Service Worker registered:', registration.scope);
+            debug.log('✅ Service Worker registered:', registration.scope);
         } else {
-            console.log('✅ Service Worker already registered:', registration.scope);
+            debug.log('✅ Service Worker already registered:', registration.scope);
         }
 
         // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
-        console.log('✅ Service Worker is ready');
+        debug.log('✅ Service Worker is ready');
 
         return registration;
 
     } catch (error) {
-        console.error('❌ Service Worker registration failed:', error);
+        debug.error('❌ Service Worker registration failed:', error);
         throw error;
     }
 }
@@ -102,30 +103,30 @@ export async function requestNotificationPermission() {
         }
 
         // IMPORTANT: Register and wait for Service Worker FIRST
-        console.log('🔄 Registering Service Worker...');
+        debug.log('🔄 Registering Service Worker...');
         await registerServiceWorker();
 
         // Wait a bit to ensure Service Worker is fully active
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Request permission
-        console.log('🔔 Requesting notification permission...');
+        debug.log('🔔 Requesting notification permission...');
         const permission = await Notification.requestPermission();
 
         if (permission !== 'granted') {
             throw new Error('Notification permission denied');
         }
 
-        console.log('✅ Notification permission granted');
+        debug.log('✅ Notification permission granted');
 
         // Initialize Firebase Messaging
         if (!messaging) {
-            console.log('🔄 Initializing Firebase Messaging...');
+            debug.log('🔄 Initializing Firebase Messaging...');
             await initializeMessaging();
         }
 
         // Get FCM token
-        console.log('🔄 Getting FCM token...');
+        debug.log('🔄 Getting FCM token...');
         fcmToken = await messaging.getToken({
             vapidKey: 'BA7vbWhWxiPOE6sZtC9k4FMb2wHt2jNOmt5mo1EGtYhHvkbGraSGmkvAgacQO5IBL1Eu1KM-wJGWyY0z_D7yYL0'
         });
@@ -134,7 +135,7 @@ export async function requestNotificationPermission() {
             throw new Error('Failed to get FCM token');
         }
 
-        console.log('✅ FCM token obtained:', fcmToken.substring(0, 20) + '...');
+        debug.log('✅ FCM token obtained:', fcmToken.substring(0, 20) + '...');
 
         // Save token to server
         await saveTokenToServer(fcmToken);
@@ -145,7 +146,7 @@ export async function requestNotificationPermission() {
         return fcmToken;
 
     } catch (error) {
-        console.error('❌ Failed to request notification permission:', error);
+        debug.error('❌ Failed to request notification permission:', error);
         throw error;
     }
 }
@@ -171,10 +172,10 @@ async function saveTokenToServer(token) {
             throw new Error('Failed to save token to server');
         }
 
-        console.log('✅ FCM token saved to server');
+        debug.log('✅ FCM token saved to server');
 
     } catch (error) {
-        console.error('Failed to save token:', error);
+        debug.error('Failed to save token:', error);
         throw error;
     }
 }
@@ -201,10 +202,10 @@ export async function disableNotifications() {
         fcmToken = null;
         updateState('notificationsEnabled', false);
 
-        console.log('✅ Notifications disabled');
+        debug.log('✅ Notifications disabled');
 
     } catch (error) {
-        console.error('Failed to disable notifications:', error);
+        debug.error('Failed to disable notifications:', error);
     }
 }
 
@@ -229,12 +230,12 @@ export async function loadNotificationPreferences() {
         updateState('watchedTimetables', data.watchedTimetables || []);
         updateState('notificationsEnabled', data.hasTokens || false);
 
-        console.log(`✅ Loaded preferences - Watched: ${data.watchedTimetables?.length || 0}, Notifications: ${data.hasTokens ? 'ON' : 'OFF'}`);
+        debug.log(`✅ Loaded preferences - Watched: ${data.watchedTimetables?.length || 0}, Notifications: ${data.hasTokens ? 'ON' : 'OFF'}`);
 
         return data;
 
     } catch (error) {
-        console.error('Failed to load preferences:', error);
+        debug.error('Failed to load preferences:', error);
         return null;
     }
 }
@@ -261,10 +262,10 @@ export async function saveWatchedTimetables(timetables) {
         }
 
         updateState('watchedTimetables', timetables);
-        console.log('✅ Watched timetables saved');
+        debug.log('✅ Watched timetables saved');
 
     } catch (error) {
-        console.error('Failed to save watched timetables:', error);
+        debug.error('Failed to save watched timetables:', error);
         throw error;
     }
 }

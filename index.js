@@ -638,25 +638,54 @@ app.get('/api/debug/pending-changes', requireDebugMode, async (req, res) => {
 // Simulate timetable change and send notifications immediately
 app.post('/api/debug/simulate-change', requireDebugMode, async (req, res) => {
     try {
-        const { timetableType, timetableId, timetableName, scheduleType } = req.body;
+        const { timetableType, timetableId, timetableName, scheduleType, changeType } = req.body;
 
         const db = getFirestore();
 
-        // Create fake change
-        const fakeChange = {
-            timetable: {
-                type: timetableType || 'Class',
-                id: timetableId || 'TEST',
-                name: timetableName || 'Testovací třída',
-                scheduleType: scheduleType || 'Actual'
-            },
-            changes: [
+        // Create realistic simulated changes based on changeType
+        let changes = [];
+
+        if (changeType === 'room_change') {
+            // Realistic room change simulation
+            changes = [
+                {
+                    type: 'room_change',
+                    day: 4, // Friday
+                    dayName: 'pá',
+                    hour: 3,
+                    lesson: {
+                        subject: 'Matematika',
+                        teacher: 'Novák',
+                        room: '11',
+                        day: 4,
+                        hour: 3
+                    },
+                    change: {
+                        field: 'room',
+                        oldValue: '08',
+                        newValue: '11',
+                        type: 'room_change'
+                    },
+                    description: '🧪 SIMULACE: Změna místnosti: Matematika - 08 → 11',
+                    timestamp: new Date().toISOString()
+                }
+            ];
+        } else {
+            // Default mixed changes for testing
+            changes = [
                 {
                     type: 'lesson_removed',
                     day: 1,
                     dayName: 'út',
                     hour: 3,
-                    description: '🧪 DEBUG: Odpadla hodina: Matematika',
+                    lesson: {
+                        subject: 'Tělesná výchova',
+                        teacher: 'Svobodová',
+                        room: 'TV',
+                        day: 1,
+                        hour: 3
+                    },
+                    description: '🧪 SIMULACE: Odpadla hodina: Tělesná výchova',
                     timestamp: new Date().toISOString()
                 },
                 {
@@ -664,10 +693,54 @@ app.post('/api/debug/simulate-change', requireDebugMode, async (req, res) => {
                     day: 2,
                     dayName: 'st',
                     hour: 2,
-                    description: '🧪 DEBUG: Suplování: Fyzika',
+                    lesson: {
+                        subject: 'Fyzika',
+                        teacher: 'Procházková',
+                        room: '305',
+                        day: 2,
+                        hour: 2
+                    },
+                    change: {
+                        field: 'teacher',
+                        oldValue: 'Novotný',
+                        newValue: 'Procházková',
+                        type: 'substitution'
+                    },
+                    description: '🧪 SIMULACE: Suplování: Fyzika - Novotný → Procházková',
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    type: 'room_change',
+                    day: 4,
+                    dayName: 'pá',
+                    hour: 5,
+                    lesson: {
+                        subject: 'Angličtina',
+                        teacher: 'Smith',
+                        room: '202',
+                        day: 4,
+                        hour: 5
+                    },
+                    change: {
+                        field: 'room',
+                        oldValue: '201',
+                        newValue: '202',
+                        type: 'room_change'
+                    },
+                    description: '🧪 SIMULACE: Změna místnosti: Angličtina - 201 → 202',
                     timestamp: new Date().toISOString()
                 }
-            ],
+            ];
+        }
+
+        const fakeChange = {
+            timetable: {
+                type: timetableType || 'Class',
+                id: timetableId || 'TEST',
+                name: timetableName || '🧪 SIMULACE - Testovací třída',
+                scheduleType: scheduleType || 'Actual'
+            },
+            changes: changes,
             timestamp: new Date().toISOString(),
             sent: false
         };
@@ -682,7 +755,7 @@ app.post('/api/debug/simulate-change', requireDebugMode, async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Fake change created and notifications sent',
+            message: 'Simulated notification sent',
             changeId: changeRef.id,
             change: fakeChange,
             notificationResult: result

@@ -7,22 +7,23 @@ import { state, updateState } from './state.js';
 import { dom } from './dom.js';
 import { saveWatchedTimetables } from './notifications-core.js';
 import { renderSelectedTimetablesPreferences, getDefaultPreferences } from './notifications-preferences.js';
+import { debug } from './debug.js';
 
 /**
  * Populate multiselect dropdown options
  */
 export function populateMultiselectOptions() {
     if (!dom.multiselectOptions) {
-        console.error('❌ multiselectOptions DOM element not found');
+        debug.error('❌ multiselectOptions DOM element not found');
         return;
     }
 
     if (!state.definitions) {
-        console.error('❌ state.definitions is not defined');
+        debug.error('❌ state.definitions is not defined');
         return;
     }
 
-    console.log('✅ Populating multiselect with definitions:', {
+    debug.log('✅ Populating multiselect with definitions:', {
         classes: state.definitions.classes?.length || 0,
         teachers: state.definitions.teachers?.length || 0,
         rooms: state.definitions.rooms?.length || 0
@@ -127,9 +128,9 @@ async function handleMultiselectChange(event) {
     // Save to server
     try {
         await saveWatchedTimetables(watchedTimetables);
-        console.log('Watched timetables updated:', watchedTimetables);
+        debug.log('Watched timetables updated:', watchedTimetables);
     } catch (error) {
-        console.error('Failed to save watched timetables:', error);
+        debug.error('Failed to save watched timetables:', error);
         // Revert checkbox state on error
         checkbox.checked = !checkbox.checked;
         // Revert to original state
@@ -215,10 +216,43 @@ function openMultiselect() {
     dom.multiselectTrigger.classList.add('active');
     dom.multiselectMenu.classList.add('active');
 
+    // Position dropdown using fixed positioning
+    positionDropdown();
+
     // Focus search input
     if (dom.multiselectSearch) {
         setTimeout(() => dom.multiselectSearch.focus(), 100);
     }
+}
+
+/**
+ * Position dropdown menu intelligently based on available space
+ */
+function positionDropdown() {
+    if (!dom.multiselectTrigger || !dom.multiselectMenu) return;
+
+    const triggerRect = dom.multiselectTrigger.getBoundingClientRect();
+    const menuHeight = 400; // max-height from CSS
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - triggerRect.bottom;
+    const spaceAbove = triggerRect.top;
+
+    // Set width to match trigger
+    dom.multiselectMenu.style.width = `${triggerRect.width}px`;
+
+    // Decide whether to open above or below
+    if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+        // Open above
+        dom.multiselectMenu.style.bottom = `${viewportHeight - triggerRect.top}px`;
+        dom.multiselectMenu.style.top = 'auto';
+    } else {
+        // Open below (default)
+        dom.multiselectMenu.style.top = `${triggerRect.bottom}px`;
+        dom.multiselectMenu.style.bottom = 'auto';
+    }
+
+    // Set horizontal position
+    dom.multiselectMenu.style.left = `${triggerRect.left}px`;
 }
 
 /**
@@ -235,6 +269,36 @@ function closeMultiselect() {
         dom.multiselectSearch.value = '';
         filterMultiselectOptions('');
     }
+}
+
+/**
+ * Setup global event listeners for dropdown
+ */
+export function setupMultiselectGlobalListeners() {
+    // Close on click outside
+    document.addEventListener('click', (event) => {
+        if (!dom.multiselectTrigger || !dom.multiselectMenu) return;
+
+        const isClickInside = dom.multiselectTrigger.contains(event.target) ||
+                             dom.multiselectMenu.contains(event.target);
+
+        if (!isClickInside && dom.multiselectMenu.classList.contains('active')) {
+            closeMultiselect();
+        }
+    });
+
+    // Reposition on scroll/resize
+    window.addEventListener('scroll', () => {
+        if (dom.multiselectMenu && dom.multiselectMenu.classList.contains('active')) {
+            positionDropdown();
+        }
+    }, true);
+
+    window.addEventListener('resize', () => {
+        if (dom.multiselectMenu && dom.multiselectMenu.classList.contains('active')) {
+            positionDropdown();
+        }
+    });
 }
 
 /**

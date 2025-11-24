@@ -733,11 +733,16 @@ app.post('/api/debug/simulate-change', requireDebugMode, async (req, res) => {
             ];
         }
 
+        // Always add SIMULACE prefix to make it clear it's a test
+        const simulationName = timetableName
+            ? `🧪 SIMULACE - ${timetableName}`
+            : '🧪 SIMULACE - Testovací třída';
+
         const fakeChange = {
             timetable: {
                 type: timetableType || 'Class',
                 id: timetableId || 'TEST',
-                name: timetableName || '🧪 SIMULACE - Testovací třída',
+                name: simulationName,
                 scheduleType: scheduleType || 'Actual'
             },
             changes: changes,

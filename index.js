@@ -301,13 +301,25 @@ app.post('/api/fcm/subscribe', async (req, res) => {
         const userDoc = await userRef.get();
 
         if (userDoc.exists) {
+            // Get old tokens for logging
+            const oldTokens = userDoc.data().tokens || [];
+
             // REPLACE token (not append) to prevent duplicates
             // This ensures each user has only ONE active token
             await userRef.update({
                 tokens: [token],  // Replace old tokens with new one
                 lastUpdated: new Date().toISOString()
             });
+
             console.log(`✅ Updated FCM token for user ${userId}`);
+            console.log(`   Old tokens count: ${oldTokens.length} → New: 1`);
+
+            // Verify no duplicates after update
+            const verifyDoc = await userRef.get();
+            const verifyTokens = verifyDoc.data().tokens || [];
+            if (verifyTokens.length > 1) {
+                console.warn(`⚠️  WARNING: User ${userId} still has ${verifyTokens.length} tokens after update!`);
+            }
         } else {
             // Create new user document
             await userRef.set({

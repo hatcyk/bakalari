@@ -32,10 +32,14 @@
     <h1>🔍 Debug Notifikací</h1>
 
     <div class="section">
-        <h2>Kontrola Service Workers</h2>
+        <h2>⚠️ Kontrola Service Workers</h2>
+        <div id="sw-warning" style="display: none; padding: 15px; background: #ff4444; color: #fff; margin-bottom: 15px; border-radius: 5px; font-weight: bold;">
+            🚨 PROBLÉM DETEKOVÁN: Máš více než 1 Service Worker!<br>
+            To způsobuje duplicitní notifikace. Klikni na "FIX NOW!" níže.
+        </div>
         <div id="sw-status"></div>
         <button onclick="checkServiceWorkers()">Zkontrolovat SW</button>
-        <button onclick="cleanupServiceWorkers()">Vyčistit staré SW</button>
+        <button onclick="cleanupServiceWorkers()" style="background: #ff4444; color: #fff; font-weight: bold;">🔧 FIX NOW!</button>
     </div>
 
     <div class="section">
@@ -73,6 +77,10 @@
 
                 if (regs.length > 1) {
                     html += '<p class="error">⚠️ PROBLÉM: Máš více než 1 SW!</p>';
+                    // Show big warning banner
+                    document.getElementById('sw-warning').style.display = 'block';
+                } else {
+                    document.getElementById('sw-warning').style.display = 'none';
                 }
 
                 status.innerHTML = html;
@@ -97,7 +105,15 @@
                 }
 
                 status.innerHTML = `<p class="success">✅ Vyčištěno ${cleaned} starých SW</p>`;
-                setTimeout(checkServiceWorkers, 1000);
+
+                if (cleaned > 0) {
+                    status.innerHTML += '<p class="warning">🔄 Reloaduji stránku za 2 sekundy...</p>';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    setTimeout(checkServiceWorkers, 1000);
+                }
             } catch (err) {
                 status.innerHTML = `<p class="error">Chyba: ${err.message}</p>`;
             }

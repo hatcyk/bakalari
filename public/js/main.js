@@ -22,6 +22,7 @@ async function cleanupOldServiceWorkers() {
 
         const registrations = await navigator.serviceWorker.getRegistrations();
         let cleanedCount = 0;
+        const oldSWs = [];
 
         for (const registration of registrations) {
             const scriptURL = registration.active?.scriptURL || '';
@@ -29,13 +30,21 @@ async function cleanupOldServiceWorkers() {
             // Remove any SW that is NOT firebase-messaging-sw.js
             if (scriptURL && !scriptURL.includes('firebase-messaging-sw.js')) {
                 console.log(`🗑️ Cleaning up old Service Worker: ${scriptURL}`);
+                oldSWs.push(scriptURL);
                 await registration.unregister();
                 cleanedCount++;
             }
         }
 
         if (cleanedCount > 0) {
-            console.log(`✅ Cleaned up ${cleanedCount} old Service Worker(s)`);
+            console.log(`✅ Cleaned up ${cleanedCount} old Service Worker(s):`, oldSWs);
+            console.warn('⚠️ Stránka bude obnovena pro dokončení změn...');
+
+            // Force reload after cleanup to ensure SW changes take effect
+            setTimeout(() => {
+                console.log('🔄 Reloading aplikace...');
+                window.location.reload();
+            }, 1000);
         }
     } catch (error) {
         console.error('❌ Failed to cleanup Service Workers:', error);

@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const fcmRoutes = require('./routes/fcm');
 const prefetchRoutes = require('./routes/prefetch');
 const debugRoutes = require('./routes/debug');
+const statusRoutes = require('./routes/status');
 
 // Import cron
 const { startCronJob } = require('./backend/cron');
@@ -39,6 +40,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Mount API routes
 app.use('/api', timetableRoutes);
 app.use('/api', authRoutes);
+app.use('/api', statusRoutes);
 app.use('/api/fcm', fcmRoutes);
 app.use('/api/prefetch', prefetchRoutes);
 app.use('/api/debug', debugRoutes);

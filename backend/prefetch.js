@@ -269,6 +269,7 @@ async function prefetchAllData() {
                 successCount: 0,
                 errorCount: 0,
                 duration: Date.now() - startTime,
+                definitionsCount: 0,
                 error: 'No definitions fetched - check cookie validity'
             };
         }
@@ -401,6 +402,7 @@ async function prefetchAllData() {
             successCount,
             errorCount,
             duration: Date.now() - startTime,
+            definitionsCount: totalEntitiesFetched,
         };
 
     } catch (error) {

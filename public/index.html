@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/theme-warning.css">
     <link rel="stylesheet" href="css/notifications.css">
     <link rel="stylesheet" href="css/settings.css">
+    <link rel="stylesheet" href="css/outage.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -107,6 +108,17 @@
                     <line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
                 <span>Režim offline - zobrazuji uložená data</span>
+            </div>
+        </div>
+
+        <div id="outageBanner" class="outage-banner hidden">
+            <div class="outage-banner-content">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span>Probíhá výpadek Bakalářů - data se aktuálně neaktualizují</span>
             </div>
         </div>
 
@@ -359,7 +371,7 @@
     </div>
 
     <footer>
-        <p>Created by Štefan Barát 3.A</p>
+        <p>Created by Štefan Barát</p>
     </footer>
 
     <!-- Firebase SDK -->

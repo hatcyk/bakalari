@@ -10,6 +10,17 @@ const { initializeFirebaseAdmin } = require('./firebase-admin-init');
 let cronJob = null;
 let isRunning = false;
 
+// Track last prefetch status
+let lastPrefetchStatus = {
+    isHealthy: true,
+    lastRun: null,
+    lastSuccess: null,
+    definitionsCount: 0,
+    successCount: 0,
+    totalRequests: 0,
+    error: null
+};
+
 /**
  * Run prefetch with error handling and status tracking
  */
@@ -33,9 +44,31 @@ async function runPrefetch() {
         console.log(`   Duration: ${(result.duration / 1000 / 60).toFixed(2)} minutes`);
         console.log(`   Success: ${result.successCount}/${result.totalRequests}`);
 
+        // Update status - healthy if we got definitions
+        lastPrefetchStatus = {
+            isHealthy: result.definitionsCount > 0,
+            lastRun: startTime,
+            lastSuccess: startTime,
+            definitionsCount: result.definitionsCount || 0,
+            successCount: result.successCount,
+            totalRequests: result.totalRequests,
+            error: result.definitionsCount === 0 ? 'No definitions fetched - API may be down or cookie expired' : null
+        };
+
     } catch (error) {
         console.error(`❌ Prefetch failed:`, error.message);
         console.error(error.stack);
+
+        // Update status - unhealthy
+        lastPrefetchStatus = {
+            isHealthy: false,
+            lastRun: startTime,
+            lastSuccess: lastPrefetchStatus.lastSuccess,
+            definitionsCount: 0,
+            successCount: 0,
+            totalRequests: 0,
+            error: error.message
+        };
 
     } finally {
         isRunning = false;
@@ -100,6 +133,16 @@ function getCronStatus() {
 }
 
 /**
+ * Get last prefetch status (for API health check)
+ */
+function getLastPrefetchStatus() {
+    return {
+        ...lastPrefetchStatus,
+        prefetchInProgress: isRunning
+    };
+}
+
+/**
  * Manually trigger prefetch (for testing or manual refresh)
  */
 async function triggerManualPrefetch() {
@@ -111,5 +154,6 @@ module.exports = {
     startCronJob,
     stopCronJob,
     getCronStatus,
+    getLastPrefetchStatus,
     triggerManualPrefetch,
 };

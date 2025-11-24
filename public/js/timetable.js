@@ -20,12 +20,14 @@ import { populateDropdown, getDropdownValue } from './dropdown.js';
 export function populateValueSelect() {
     let data = [];
 
-    if (state.selectedType === 'Class') data = state.definitions.classes;
-    else if (state.selectedType === 'Teacher') data = state.definitions.teachers;
-    else if (state.selectedType === 'Room') data = state.definitions.rooms;
+    if (state.selectedType === 'Class') data = state.definitions.classes || [];
+    else if (state.selectedType === 'Teacher') data = state.definitions.teachers || [];
+    else if (state.selectedType === 'Room') data = state.definitions.rooms || [];
 
-    // Sort alphabetically
-    data.sort((a, b) => a.name.localeCompare(b.name));
+    // Sort alphabetically (only if data is not empty)
+    if (data.length > 0) {
+        data.sort((a, b) => a.name.localeCompare(b.name));
+    }
 
     // Convert to dropdown format and filter out empty values
     const items = data

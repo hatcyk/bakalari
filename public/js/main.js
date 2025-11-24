@@ -3,7 +3,7 @@ import { state, updateState } from './state.js';
 import { initTheme, initThemeToggle } from './theme.js';
 import { initModalListeners } from './modal.js';
 import { loadTimetable, populateValueSelect, createDaySelector, initWeekViewToggle } from './timetable.js';
-import { fetchDefinitions } from './api.js';
+import { fetchDefinitions, checkBakalariStatus } from './api.js';
 import { initCustomDropdown, setDropdownValue, getDropdownValue, openDropdown } from './dropdown.js';
 import { buildTeacherAbbreviationMap, shouldAutoSwitchToNextWeek } from './utils.js';
 import { initSunData } from './suntime.js';
@@ -144,9 +144,37 @@ async function init() {
         // Initialize custom dropdown
         initCustomDropdown(loadTimetable);
 
-        // Fetch definitions
-        const definitions = await fetchDefinitions();
+        // Fetch definitions and check Bakalari status in parallel
+        const [definitions, isBakalariUp] = await Promise.all([
+            fetchDefinitions(),
+            checkBakalariStatus()
+        ]);
+
         updateState('definitions', definitions);
+
+        // Check for outage (API is down)
+        if (!isBakalariUp && dom.outageBanner) {
+            console.warn('⚠️ Bakaláři API is down - showing outage banner');
+            dom.outageBanner.classList.remove('hidden');
+        } else if (dom.outageBanner) {
+            dom.outageBanner.classList.add('hidden');
+        }
+
+        // Periodically check Bakalari status (every 2 minutes)
+        setInterval(async () => {
+            const isUp = await checkBakalariStatus();
+            if (!isUp && dom.outageBanner) {
+                if (dom.outageBanner.classList.contains('hidden')) {
+                    console.warn('⚠️ Bakaláři API went down - showing outage banner');
+                }
+                dom.outageBanner.classList.remove('hidden');
+            } else if (dom.outageBanner) {
+                if (!dom.outageBanner.classList.contains('hidden')) {
+                    console.log('✅ Bakaláři API is back up - hiding outage banner');
+                }
+                dom.outageBanner.classList.add('hidden');
+            }
+        }, 2 * 60 * 1000); // Check every 2 minutes
 
         // Expose state and dom to window for debugging
         if (typeof window !== 'undefined') {

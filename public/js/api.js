@@ -104,3 +104,33 @@ export function clearSessionCache() {
     sessionCache.timetables.clear();
     console.log('Session cache cleared');
 }
+
+/**
+ * Check if Bakalari API is available by asking our backend
+ */
+export async function checkBakalariStatus() {
+    try {
+        const response = await fetch('/api/status', {
+            method: 'GET',
+            cache: 'no-cache'
+        });
+
+        if (!response.ok) {
+            console.error('⚠️ Failed to fetch backend status');
+            return true; // Assume it's working if we can't check
+        }
+
+        const data = await response.json();
+
+        if (!data.isHealthy) {
+            console.warn('⚠️ Bakaláři API is down or returning empty data');
+            return false;
+        }
+
+        console.log('✅ Bakaláři API is healthy');
+        return true;
+    } catch (error) {
+        console.error('⚠️ Backend status check failed:', error.message);
+        return true; // Assume it's working if we can't check
+    }
+}

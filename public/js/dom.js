@@ -11,6 +11,7 @@ export const dom = {
     loading: null,
     errorDiv: null,
     offlineBanner: null,
+    outageBanner: null,
     daySelector: null,
     themeToggle: null,
     lessonModal: null,
@@ -44,6 +45,7 @@ export function initDOM() {
     dom.loading = document.getElementById('loading');
     dom.errorDiv = document.getElementById('error');
     dom.offlineBanner = document.getElementById('offlineBanner');
+    dom.outageBanner = document.getElementById('outageBanner');
     dom.daySelector = document.getElementById('daySelector');
     dom.themeToggle = document.getElementById('themeToggle');
     dom.lessonModal = document.getElementById('lessonModal');

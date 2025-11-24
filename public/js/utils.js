@@ -236,6 +236,26 @@ export function getUpcomingHour() {
     return -1; // Žádná nadcházející hodina (konec vyučování nebo večer)
 }
 
+// Utility funkce pro zjištění, zda hodina už proběhla
+export function isPastLesson(dayIndex, hour) {
+    const todayIndex = getTodayIndex();
+
+    // Pouze pro dnešek kontrolujeme proběhlé hodiny
+    if (dayIndex !== todayIndex) return false;
+
+    // Najdeme informace o hodině
+    const lessonInfo = lessonTimes.find(l => l.hour === hour);
+    if (!lessonInfo) return false;
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const [endH, endM] = lessonInfo.end;
+
+    // Pokud je aktuální čas po konci hodiny, hodina proběhla
+    return (currentHour > endH) || (currentHour === endH && currentMinute > endM);
+}
+
 // Parse group name to extract class and group number
 export function parseGroupName(groupName) {
     if (!groupName) return null;

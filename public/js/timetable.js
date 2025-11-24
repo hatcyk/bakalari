@@ -8,6 +8,7 @@ import {
     getTodayIndex,
     getCurrentHour,
     getUpcomingHour,
+    isPastLesson,
     parseGroupName
 } from './utils.js';
 import { showLessonModal } from './modal.js';
@@ -313,6 +314,11 @@ export function renderTimetable(data) {
                     // Zvýraznění nadcházející hodiny
                     if (dayIndex === todayIndex && hour === upcomingHour && hour !== currentHour) {
                         cardClass += ' upcoming';
+                    }
+
+                    // Označení proběhlých hodin
+                    if (isPastLesson(dayIndex, hour)) {
+                        cardClass += ' past';
                     }
 
                     card.className = cardClass;

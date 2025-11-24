@@ -123,6 +123,7 @@
     right: 8px;
     color: #EB5D43;
     font-size: 0.75rem;
+    z-index: 10;
 }
 
 /* When lesson is both current and changed, adjust positions */
@@ -145,11 +146,29 @@
     right: 8px;
     color: #002B4F;
     font-size: 0.7rem;
+    z-index: 10;
 }
 
 /* When lesson is both upcoming and changed, adjust positions */
 .lesson-card.upcoming.changed::before {
     right: 32px;
+}
+
+/* Past lessons - grayed out */
+.lesson-card.past {
+    background: rgba(100, 100, 100, 0.15);
+    border: 1px solid rgba(100, 100, 100, 0.3);
+    opacity: 0.65;
+    position: relative;
+}
+
+/* Reduce opacity of text in past lessons */
+.lesson-card.past .lesson-subject {
+    opacity: 0.8;
+}
+
+.lesson-card.past .lesson-details {
+    opacity: 0.7;
 }
 
 .lesson-subject {

@@ -134,6 +134,11 @@ function createTimetablePreferenceItem(timetable, index) {
 
     // Render each notification type group
     for (const [groupKey, group] of Object.entries(NOTIFICATION_TYPES)) {
+        // Skip reminders for Next schedule type
+        if (groupKey === 'reminders' && timetable.scheduleType === 'Next') {
+            continue;
+        }
+
         const groupDiv = document.createElement('div');
         groupDiv.className = 'notification-type-group';
 
@@ -141,6 +146,15 @@ function createTimetablePreferenceItem(timetable, index) {
         const groupTitle = document.createElement('div');
         groupTitle.className = 'notification-type-group-title';
         groupTitle.innerHTML = `${group.icon} ${group.title}`;
+
+        // Add note for reminders that they are only for Actual schedule
+        if (groupKey === 'reminders' && timetable.scheduleType === 'Actual') {
+            const note = document.createElement('span');
+            note.className = 'notification-type-group-note';
+            note.textContent = '(pouze pro aktuální týden)';
+            groupTitle.appendChild(note);
+        }
+
         groupDiv.appendChild(groupTitle);
 
         // Options

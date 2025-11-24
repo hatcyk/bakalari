@@ -464,6 +464,16 @@
     height: 16px;
 }
 
+.notification-type-group-note {
+    font-size: 0.75em;
+    font-weight: 400;
+    color: var(--text-dim);
+    margin-left: 6px;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.8;
+}
+
 .notification-type-option {
     display: flex;
     align-items: flex-start;

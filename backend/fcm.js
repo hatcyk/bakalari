@@ -82,9 +82,9 @@ async function sendNotificationToTokens(tokens, notification) {
 }
 
 /**
- * Get all users watching a specific timetable
+ * Get all users watching a specific timetable with their notification preferences
  * @param {Object} timetable - Timetable metadata (type, id, scheduleType)
- * @returns {Promise<Array>} Array of user IDs and their tokens
+ * @returns {Promise<Array>} Array of user IDs, their tokens, and notification preferences
  */
 async function getUsersWatchingTimetable(timetable) {
     try {
@@ -103,17 +103,18 @@ async function getUsersWatchingTimetable(timetable) {
                 return;
             }
 
-            // Check if user is watching this timetable
-            const isWatching = preferences.watchedTimetables.some(watched =>
+            // Find the watched timetable entry
+            const watchedTimetable = preferences.watchedTimetables.find(watched =>
                 watched.type === timetable.type &&
                 watched.id === timetable.id &&
                 watched.scheduleType === timetable.scheduleType
             );
 
-            if (isWatching && userData.tokens && userData.tokens.length > 0) {
+            if (watchedTimetable && userData.tokens && userData.tokens.length > 0) {
                 watchingUsers.push({
                     userId: userDoc.id,
-                    tokens: userData.tokens
+                    tokens: userData.tokens,
+                    notificationTypes: watchedTimetable.notificationTypes || null
                 });
             }
         });
@@ -124,6 +125,35 @@ async function getUsersWatchingTimetable(timetable) {
         console.error('Failed to get users watching timetable:', error.message);
         throw error;
     }
+}
+
+/**
+ * Filter changes based on user's notification preferences
+ * @param {Array} changes - Array of changes
+ * @param {Object} notificationTypes - User's notification type preferences
+ * @returns {Array} Filtered changes
+ */
+function filterChangesByPreferences(changes, notificationTypes) {
+    if (!notificationTypes || !notificationTypes.changes) {
+        // No preferences set, send all change notifications (default behavior)
+        return changes;
+    }
+
+    const userPrefs = notificationTypes.changes;
+
+    return changes.filter(change => {
+        // Check if user wants this type of notification
+        const typeKey = change.type;
+        const isEnabled = userPrefs[typeKey];
+
+        // If preference is not set, default to true for important changes
+        if (isEnabled === undefined) {
+            // Default: send important notifications (removed, substitution, room_change)
+            return ['lesson_removed', 'substitution', 'room_change'].includes(typeKey);
+        }
+
+        return isEnabled;
+    });
 }
 
 /**
@@ -168,27 +198,35 @@ async function processPendingChanges() {
                 continue;
             }
 
-            // Create notification payload
-            const summary = createChangeSummary(changes);
-            const notification = {
-                title: `Změny v rozvrhu: ${timetable.name}`,
-                body: summary,
-                data: {
-                    type: 'timetable_change',
-                    timetableType: timetable.type,
-                    timetableId: timetable.id,
-                    scheduleType: timetable.scheduleType,
-                    changeCount: changes.length.toString(),
-                    timestamp: new Date().toISOString()
-                },
-                icon: '/icon-192.png'
-            };
-
-            // Send to all watching users
+            // Send to each user with their filtered changes
             let totalSent = 0;
 
             for (const user of watchingUsers) {
                 try {
+                    // Filter changes based on user preferences
+                    const filteredChanges = filterChangesByPreferences(changes, user.notificationTypes);
+
+                    if (filteredChanges.length === 0) {
+                        console.log(`⏭️  No relevant changes for user ${user.userId} based on preferences`);
+                        continue;
+                    }
+
+                    // Create notification payload with filtered changes
+                    const summary = createChangeSummary(filteredChanges);
+                    const notification = {
+                        title: `Změny v rozvrhu: ${timetable.name}`,
+                        body: summary,
+                        data: {
+                            type: 'timetable_change',
+                            timetableType: timetable.type,
+                            timetableId: timetable.id,
+                            scheduleType: timetable.scheduleType,
+                            changeCount: filteredChanges.length.toString(),
+                            timestamp: new Date().toISOString()
+                        },
+                        icon: '/icon-192.png'
+                    };
+
                     const result = await sendNotificationToTokens(user.tokens, notification);
                     totalSent += result.successCount;
                 } catch (error) {

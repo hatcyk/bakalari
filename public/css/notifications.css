@@ -320,3 +320,130 @@
     border-color: rgba(255, 193, 7, 0.6);
     transform: translateY(-1px);
 }
+
+/* Selected Timetables with Preferences */
+.selected-timetables-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.timetable-preference-item {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.timetable-preference-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: var(--hover-bg);
+    transition: background 0.2s ease;
+}
+
+.timetable-preference-header:hover {
+    background: rgba(0, 43, 79, 0.2);
+}
+
+.timetable-preference-header.expanded {
+    background: rgba(0, 43, 79, 0.25);
+    border-bottom: 1px solid var(--border);
+}
+
+.timetable-preference-name {
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.timetable-preference-badge {
+    font-size: 0.75em;
+    padding: 3px 8px;
+    background: var(--accent);
+    color: white;
+    border-radius: 4px;
+    font-weight: 700;
+}
+
+.timetable-preference-arrow {
+    transition: transform 0.2s ease;
+}
+
+.timetable-preference-header.expanded .timetable-preference-arrow {
+    transform: rotate(90deg);
+}
+
+.timetable-preference-body {
+    display: none;
+    padding: 16px;
+    gap: 16px;
+    flex-direction: column;
+}
+
+.timetable-preference-body.expanded {
+    display: flex;
+}
+
+.notification-type-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.notification-type-group-title {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.notification-type-group-title svg {
+    width: 16px;
+    height: 16px;
+}
+
+.notification-type-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.notification-type-option:hover {
+    background: var(--hover-bg);
+    transform: translateX(2px);
+}
+
+.notification-type-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+
+.notification-type-option label {
+    flex: 1;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: var(--text-main);
+}
+
+.notification-type-option-description {
+    font-size: 0.75em;
+    color: var(--text-dim);
+    margin-top: 2px;
+}

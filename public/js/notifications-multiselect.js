@@ -6,6 +6,7 @@
 import { state, updateState } from './state.js';
 import { dom } from './dom.js';
 import { saveWatchedTimetables } from './notifications-core.js';
+import { renderSelectedTimetablesPreferences, getDefaultPreferences } from './notifications-preferences.js';
 
 /**
  * Populate multiselect dropdown options
@@ -119,7 +120,13 @@ async function handleMultiselectChange(event) {
     const name = checkbox.dataset.name;
     const scheduleType = checkbox.dataset.scheduleType;
 
-    const timetableEntry = { type, id, name, scheduleType };
+    const timetableEntry = {
+        type,
+        id,
+        name,
+        scheduleType,
+        notificationTypes: getDefaultPreferences()
+    };
 
     let watchedTimetables = [...state.watchedTimetables];
 
@@ -142,6 +149,9 @@ async function handleMultiselectChange(event) {
     // Update state immediately for UI responsiveness
     updateState('watchedTimetables', watchedTimetables);
     updateMultiselectLabel();
+
+    // Render preferences UI for selected timetables
+    renderSelectedTimetablesPreferences();
 
     // Notify modal to update button state
     window.dispatchEvent(new CustomEvent('watchedTimetablesChanged'));

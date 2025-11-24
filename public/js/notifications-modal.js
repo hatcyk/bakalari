@@ -7,6 +7,7 @@ import { state } from './state.js';
 import { dom } from './dom.js';
 import { isIOS, isStandalone, requestNotificationPermission, disableNotifications, loadNotificationPreferences } from './notifications-core.js';
 import { populateMultiselectOptions, updateMultiselectLabel, updateMultiselectCheckboxes } from './notifications-multiselect.js';
+import { renderSelectedTimetablesPreferences } from './notifications-preferences.js';
 
 /**
  * Update notification bell button UI
@@ -69,6 +70,7 @@ async function initializeModal() {
     // Update UI based on loaded state
     updateMultiselectCheckboxes();
     updateMultiselectLabel();
+    renderSelectedTimetablesPreferences();
     updateNotificationUIState();
 }
 

@@ -137,15 +137,15 @@ export function showLessonModal(lesson) {
 
 export function closeLessonModal() {
     if (dom.lessonModal) {
-        // Add closing animation
-        dom.lessonModal.classList.add('modal-closing');
+        // Add closing animation class
+        dom.lessonModal.classList.add('closing');
 
-        // Wait for animation to complete before hiding (250ms to prevent race condition)
+        // Wait for animation to finish, then hide modal
         setTimeout(() => {
-            dom.lessonModal.classList.remove('modal-closing');
             dom.lessonModal.classList.add('hidden');
+            dom.lessonModal.classList.remove('closing');
             dom.lessonModal.style.display = 'none';
-        }, 250);
+        }, 300); // Match the longest animation duration (slideDown = 0.3s)
     }
 }
 

@@ -20,10 +20,7 @@ export function showSettingsModal() {
 export function closeSettingsModal() {
     const modal = document.getElementById('settingsModal');
     if (!modal) return;
-
-    modal.classList.add('modal-closing');
     setTimeout(() => {
-        modal.classList.remove('modal-closing');
         modal.classList.add('hidden');
         modal.style.display = 'none';
     }, 250);

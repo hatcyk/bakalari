@@ -42,10 +42,7 @@ export function showNotificationModal() {
  */
 export function closeNotificationModal() {
     if (!dom.notificationModal) return;
-
-    dom.notificationModal.classList.add('modal-closing');
     setTimeout(() => {
-        dom.notificationModal.classList.remove('modal-closing');
         dom.notificationModal.classList.add('hidden');
         dom.notificationModal.style.display = 'none';
     }, 250);

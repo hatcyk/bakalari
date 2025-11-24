@@ -28,11 +28,6 @@ export function populateMultiselectOptions() {
         rooms: state.definitions.rooms?.length || 0
     });
 
-    const scheduleTypes = [
-        { value: 'Actual', label: 'Aktuální' },
-        { value: 'Next', label: 'Příští' }
-    ];
-
     let html = '';
 
     // Add Classes section
@@ -40,20 +35,17 @@ export function populateMultiselectOptions() {
         html += '<div class="multiselect-category">Třídy</div>';
 
         state.definitions.classes.forEach(item => {
-            scheduleTypes.forEach(schedule => {
-                const id = `watch_Class_${item.id}_${schedule.value}`;
-                html += `
-                    <label class="multiselect-option">
-                        <input type="checkbox"
-                               id="${id}"
-                               data-type="Class"
-                               data-id="${item.id}"
-                               data-name="${item.name}"
-                               data-schedule-type="${schedule.value}">
-                        <span>${item.name} - ${schedule.label}</span>
-                    </label>
-                `;
-            });
+            const id = `watch_Class_${item.id}`;
+            html += `
+                <label class="multiselect-option">
+                    <input type="checkbox"
+                           id="${id}"
+                           data-type="Class"
+                           data-id="${item.id}"
+                           data-name="${item.name}">
+                    <span>${item.name}</span>
+                </label>
+            `;
         });
     }
 
@@ -62,42 +54,17 @@ export function populateMultiselectOptions() {
         html += '<div class="multiselect-category">Učitelé</div>';
 
         state.definitions.teachers.forEach(item => {
-            scheduleTypes.forEach(schedule => {
-                const id = `watch_Teacher_${item.id}_${schedule.value}`;
-                html += `
-                    <label class="multiselect-option">
-                        <input type="checkbox"
-                               id="${id}"
-                               data-type="Teacher"
-                               data-id="${item.id}"
-                               data-name="${item.name}"
-                               data-schedule-type="${schedule.value}">
-                        <span>${item.name} - ${schedule.label}</span>
-                    </label>
-                `;
-            });
-        });
-    }
-
-    // Add Rooms section
-    if (state.definitions.rooms && state.definitions.rooms.length > 0) {
-        html += '<div class="multiselect-category">Místnosti</div>';
-
-        state.definitions.rooms.forEach(item => {
-            scheduleTypes.forEach(schedule => {
-                const id = `watch_Room_${item.id}_${schedule.value}`;
-                html += `
-                    <label class="multiselect-option">
-                        <input type="checkbox"
-                               id="${id}"
-                               data-type="Room"
-                               data-id="${item.id}"
-                               data-name="${item.name}"
-                               data-schedule-type="${schedule.value}">
-                        <span>${item.name} - ${schedule.label}</span>
-                    </label>
-                `;
-            });
+            const id = `watch_Teacher_${item.id}`;
+            html += `
+                <label class="multiselect-option">
+                    <input type="checkbox"
+                           id="${id}"
+                           data-type="Teacher"
+                           data-id="${item.id}"
+                           data-name="${item.name}">
+                    <span>${item.name}</span>
+                </label>
+            `;
         });
     }
 
@@ -118,31 +85,32 @@ async function handleMultiselectChange(event) {
     const type = checkbox.dataset.type;
     const id = checkbox.dataset.id;
     const name = checkbox.dataset.name;
-    const scheduleType = checkbox.dataset.scheduleType;
-
-    const timetableEntry = {
-        type,
-        id,
-        name,
-        scheduleType,
-        notificationTypes: getDefaultPreferences()
-    };
 
     let watchedTimetables = [...state.watchedTimetables];
 
     if (checkbox.checked) {
-        // Add to watched list
-        const exists = watchedTimetables.some(t =>
-            t.type === type && t.id === id && t.scheduleType === scheduleType
-        );
+        // Add both Actual and Next schedules
+        const scheduleTypes = ['Actual', 'Next'];
 
-        if (!exists) {
-            watchedTimetables.push(timetableEntry);
-        }
+        scheduleTypes.forEach(scheduleType => {
+            const exists = watchedTimetables.some(t =>
+                t.type === type && t.id === id && t.scheduleType === scheduleType
+            );
+
+            if (!exists) {
+                watchedTimetables.push({
+                    type,
+                    id,
+                    name,
+                    scheduleType,
+                    notificationTypes: getDefaultPreferences()
+                });
+            }
+        });
     } else {
-        // Remove from watched list
+        // Remove both Actual and Next schedules
         watchedTimetables = watchedTimetables.filter(t =>
-            !(t.type === type && t.id === id && t.scheduleType === scheduleType)
+            !(t.type === type && t.id === id)
         );
     }
 
@@ -164,16 +132,10 @@ async function handleMultiselectChange(event) {
         console.error('Failed to save watched timetables:', error);
         // Revert checkbox state on error
         checkbox.checked = !checkbox.checked;
-        // Revert state
-        if (checkbox.checked) {
-            watchedTimetables = watchedTimetables.filter(t =>
-                !(t.type === type && t.id === id && t.scheduleType === scheduleType)
-            );
-        } else {
-            watchedTimetables.push(timetableEntry);
-        }
-        updateState('watchedTimetables', watchedTimetables);
+        // Revert to original state
+        updateState('watchedTimetables', state.watchedTimetables);
         updateMultiselectLabel();
+        renderSelectedTimetablesPreferences();
     }
 }
 
@@ -183,13 +145,22 @@ async function handleMultiselectChange(event) {
 export function updateMultiselectLabel() {
     if (!dom.multiselectLabel) return;
 
-    const count = state.watchedTimetables.length;
+    // Group by type and id to get unique timetables (since each has Actual and Next)
+    const uniqueTimetables = new Map();
+    state.watchedTimetables.forEach(t => {
+        const key = `${t.type}_${t.id}`;
+        if (!uniqueTimetables.has(key)) {
+            uniqueTimetables.set(key, t);
+        }
+    });
+
+    const count = uniqueTimetables.size;
 
     if (count === 0) {
         dom.multiselectLabel.textContent = 'Vyberte rozvrhy...';
     } else if (count === 1) {
-        const item = state.watchedTimetables[0];
-        dom.multiselectLabel.textContent = `${item.name} - ${item.scheduleType}`;
+        const item = Array.from(uniqueTimetables.values())[0];
+        dom.multiselectLabel.textContent = item.name;
     } else {
         dom.multiselectLabel.textContent = `${count} rozvrhů vybráno`;
     }
@@ -206,15 +177,17 @@ export function updateMultiselectCheckboxes() {
     checkboxes.forEach(checkbox => {
         const type = checkbox.dataset.type;
         const id = checkbox.dataset.id;
-        const scheduleType = checkbox.dataset.scheduleType;
 
-        const isWatched = state.watchedTimetables.some(watched =>
-            watched.type === type &&
-            watched.id === id &&
-            watched.scheduleType === scheduleType
+        // Check if both Actual and Next schedules are watched
+        const hasActual = state.watchedTimetables.some(watched =>
+            watched.type === type && watched.id === id && watched.scheduleType === 'Actual'
+        );
+        const hasNext = state.watchedTimetables.some(watched =>
+            watched.type === type && watched.id === id && watched.scheduleType === 'Next'
         );
 
-        checkbox.checked = isWatched;
+        // Checkbox is checked only if BOTH schedules are watched
+        checkbox.checked = hasActual && hasNext;
     });
 }
 

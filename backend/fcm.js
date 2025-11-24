@@ -213,8 +213,12 @@ async function processPendingChanges() {
 
                     // Create notification payload with filtered changes
                     const summary = createChangeSummary(filteredChanges);
+
+                    // Format schedule type in CAPSLOCK for title
+                    const scheduleTypeLabel = timetable.scheduleType === 'Actual' ? 'AKTUÁLNÍ' : 'PŘÍŠTÍ';
+
                     const notification = {
-                        title: `Změny v rozvrhu: ${timetable.name}`,
+                        title: `${timetable.name} ${scheduleTypeLabel}: Změny v rozvrhu`,
                         body: summary,
                         data: {
                             type: 'timetable_change',

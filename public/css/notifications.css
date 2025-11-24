@@ -205,12 +205,15 @@
 }
 
 .multiselect-category {
-    padding: 8px 12px;
-    background: var(--hover-bg);
-    font-weight: 600;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.15);
+    font-weight: 700;
     font-size: 0.85em;
-    color: var(--accent);
+    color: var(--text-main);
     border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.9;
 }
 
 .multiselect-option {

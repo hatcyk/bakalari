@@ -10,6 +10,38 @@ import { initSunData } from './suntime.js';
 import { initializeFirebase, authenticateWithFirebase } from './firebase-client.js';
 import { registerServiceWorker, initializeMessaging, initNotificationButton, showNotificationModal, closeNotificationModal, enableNotifications, disableNotificationsHandler, toggleMultiselect, filterMultiselectOptions } from './notifications.js';
 
+/**
+ * Cleanup old Service Workers (especially sw.js)
+ * Prevents duplicate notifications from multiple SW
+ */
+async function cleanupOldServiceWorkers() {
+    try {
+        if (!('serviceWorker' in navigator)) {
+            return;
+        }
+
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        let cleanedCount = 0;
+
+        for (const registration of registrations) {
+            const scriptURL = registration.active?.scriptURL || '';
+
+            // Remove any SW that is NOT firebase-messaging-sw.js
+            if (scriptURL && !scriptURL.includes('firebase-messaging-sw.js')) {
+                console.log(`🗑️ Cleaning up old Service Worker: ${scriptURL}`);
+                await registration.unregister();
+                cleanedCount++;
+            }
+        }
+
+        if (cleanedCount > 0) {
+            console.log(`✅ Cleaned up ${cleanedCount} old Service Worker(s)`);
+        }
+    } catch (error) {
+        console.error('❌ Failed to cleanup Service Workers:', error);
+    }
+}
+
 // Type button handlers
 function updateTypeButtons() {
     dom.typeButtons.forEach(btn => {
@@ -85,6 +117,9 @@ async function init() {
         await initializeFirebase(window.firebaseConfig);
         await authenticateWithFirebase();
         console.log('Firebase ready!');
+
+        // Cleanup old Service Workers before initializing new ones
+        await cleanupOldServiceWorkers();
 
         // Initialize Service Worker and Notifications
         registerServiceWorker().catch(err => console.error('Service Worker registration failed:', err));

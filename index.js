@@ -301,15 +301,13 @@ app.post('/api/fcm/subscribe', async (req, res) => {
         const userDoc = await userRef.get();
 
         if (userDoc.exists) {
-            // Add token to existing user
-            const userData = userDoc.data();
-            const tokens = userData.tokens || [];
-
-            // Avoid duplicates
-            if (!tokens.includes(token)) {
-                tokens.push(token);
-                await userRef.update({ tokens, lastUpdated: new Date().toISOString() });
-            }
+            // REPLACE token (not append) to prevent duplicates
+            // This ensures each user has only ONE active token
+            await userRef.update({
+                tokens: [token],  // Replace old tokens with new one
+                lastUpdated: new Date().toISOString()
+            });
+            console.log(`✅ Updated FCM token for user ${userId}`);
         } else {
             // Create new user document
             await userRef.set({
@@ -320,6 +318,7 @@ app.post('/api/fcm/subscribe', async (req, res) => {
                 createdAt: new Date().toISOString(),
                 lastUpdated: new Date().toISOString()
             });
+            console.log(`✅ Created new user ${userId} with FCM token`);
         }
 
         res.json({ success: true, message: 'Token saved successfully' });

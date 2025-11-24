@@ -4,7 +4,7 @@
  */
 
 const { getFirestore, getMessaging } = require('./firebase-admin-init');
-const { createChangeSummary } = require('./change-detector');
+const { createChangeSummary, createDetailedChangeSummary } = require('./change-detector');
 
 /**
  * Send notification to a single FCM token
@@ -213,6 +213,7 @@ async function processPendingChanges() {
 
                     // Create notification payload with filtered changes
                     const summary = createChangeSummary(filteredChanges);
+                    const detailedSummary = createDetailedChangeSummary(filteredChanges);
 
                     // Format schedule type in CAPSLOCK for title
                     const scheduleTypeLabel = timetable.scheduleType === 'Actual' ? 'AKTUÁLNÍ' : 'PŘÍŠTÍ';
@@ -226,7 +227,8 @@ async function processPendingChanges() {
                             timetableId: timetable.id,
                             scheduleType: timetable.scheduleType,
                             changeCount: filteredChanges.length.toString(),
-                            timestamp: new Date().toISOString()
+                            timestamp: new Date().toISOString(),
+                            detailedBody: detailedSummary
                         },
                         icon: '/icon-192.png'
                     };

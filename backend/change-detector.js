@@ -207,46 +207,124 @@ function groupChangesByTimetable(changes) {
 /**
  * Create human-readable summary of changes for notification
  * @param {Array} changes - List of changes for a timetable
- * @returns {String} Summary text
+ * @returns {String} Summary text with day and specific details
  */
 function createChangeSummary(changes) {
-    const counts = {
-        lesson_added: 0,
-        lesson_removed: 0,
-        substitution: 0,
-        room_change: 0,
-        subject_change: 0
-    };
+    // Group changes by day
+    const changesByDay = new Map();
 
     changes.forEach(change => {
-        if (counts[change.type] !== undefined) {
-            counts[change.type]++;
+        const dayKey = change.dayName || change.day;
+        if (!changesByDay.has(dayKey)) {
+            changesByDay.set(dayKey, []);
+        }
+        changesByDay.get(dayKey).push(change);
+    });
+
+    // Create detailed summary with days
+    const summaryParts = [];
+
+    changesByDay.forEach((dayChanges, dayName) => {
+        // Limit to 2 changes per day in notification to keep it readable
+        const displayChanges = dayChanges.slice(0, 2);
+
+        displayChanges.forEach(change => {
+            let changeText = '';
+
+            // Format: "Po 3.h: Matematika odpadla"
+            const timePrefix = `${dayName} ${change.hour}.h`;
+
+            if (change.type === 'lesson_removed') {
+                changeText = `${timePrefix}: ${change.lesson.subject} odpadla`;
+            } else if (change.type === 'substitution') {
+                const newTeacher = change.change?.newValue || change.lesson.teacher;
+                changeText = `${timePrefix}: ${change.lesson.subject} - supluje ${newTeacher}`;
+            } else if (change.type === 'room_change') {
+                const newRoom = change.change?.newValue || change.lesson.room;
+                changeText = `${timePrefix}: ${change.lesson.subject} - učebna ${newRoom}`;
+            } else if (change.type === 'lesson_added') {
+                changeText = `${timePrefix}: Přidána ${change.lesson.subject}`;
+            } else if (change.type === 'subject_change') {
+                const newSubject = change.change?.newValue || change.lesson.subject;
+                changeText = `${timePrefix}: Změna na ${newSubject}`;
+            }
+
+            if (changeText) {
+                summaryParts.push(changeText);
+            }
+        });
+
+        // If more changes on this day, add "a další..."
+        if (dayChanges.length > 2) {
+            summaryParts.push(`... a ${dayChanges.length - 2} dalších změn`);
         }
     });
 
-    const parts = [];
+    // Join with semicolons or newlines depending on length
+    if (summaryParts.length <= 3) {
+        return summaryParts.join('; ');
+    } else {
+        // Show first 3 and add "a další"
+        const total = changes.length;
+        return summaryParts.slice(0, 3).join('; ') + `; a ${total - 3} dalších...`;
+    }
+}
 
-    if (counts.lesson_removed > 0) {
-        parts.push(`${counts.lesson_removed}× odpadlé hodiny`);
-    }
-    if (counts.substitution > 0) {
-        parts.push(`${counts.substitution}× suplování`);
-    }
-    if (counts.room_change > 0) {
-        parts.push(`${counts.room_change}× změna místnosti`);
-    }
-    if (counts.lesson_added > 0) {
-        parts.push(`${counts.lesson_added}× nové hodiny`);
-    }
-    if (counts.subject_change > 0) {
-        parts.push(`${counts.subject_change}× změna předmětu`);
-    }
+/**
+ * Create detailed text for expandable notification
+ * @param {Array} changes - List of changes for a timetable
+ * @returns {String} Full detailed text with all changes
+ */
+function createDetailedChangeSummary(changes) {
+    // Group changes by day
+    const changesByDay = new Map();
 
-    return parts.join(', ');
+    changes.forEach(change => {
+        const dayKey = change.dayName || change.day;
+        if (!changesByDay.has(dayKey)) {
+            changesByDay.set(dayKey, []);
+        }
+        changesByDay.get(dayKey).push(change);
+    });
+
+    // Create full detailed text
+    const dayParts = [];
+
+    changesByDay.forEach((dayChanges, dayName) => {
+        const changeTexts = dayChanges.map(change => {
+            const timePrefix = `  ${change.hour}.h`;
+
+            if (change.type === 'lesson_removed') {
+                return `${timePrefix}: ${change.lesson.subject} odpadla`;
+            } else if (change.type === 'substitution') {
+                const oldTeacher = change.change?.oldValue || '';
+                const newTeacher = change.change?.newValue || change.lesson.teacher;
+                return `${timePrefix}: ${change.lesson.subject} - ${oldTeacher} → ${newTeacher}`;
+            } else if (change.type === 'room_change') {
+                const oldRoom = change.change?.oldValue || 'žádná';
+                const newRoom = change.change?.newValue || change.lesson.room;
+                return `${timePrefix}: ${change.lesson.subject} - učebna ${oldRoom} → ${newRoom}`;
+            } else if (change.type === 'lesson_added') {
+                return `${timePrefix}: Přidána ${change.lesson.subject} (${change.lesson.teacher})`;
+            } else if (change.type === 'subject_change') {
+                const oldSubject = change.change?.oldValue || '';
+                const newSubject = change.change?.newValue || change.lesson.subject;
+                return `${timePrefix}: ${oldSubject} → ${newSubject}`;
+            }
+            return '';
+        }).filter(text => text);
+
+        if (changeTexts.length > 0) {
+            dayParts.push(`${dayName}:\n${changeTexts.join('\n')}`);
+        }
+    });
+
+    return dayParts.join('\n\n');
 }
 
 module.exports = {
     detectTimetableChanges,
     groupChangesByTimetable,
     createChangeSummary,
+    createDetailedChangeSummary,
 };

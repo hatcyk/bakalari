@@ -108,6 +108,12 @@
     width: 100%;
 }
 
+.multiselect-dropdown.disabled .multiselect-trigger {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .multiselect-trigger {
     width: 100%;
     padding: 12px 16px;
@@ -123,7 +129,7 @@
     font-size: 1em;
 }
 
-.multiselect-trigger:hover {
+.multiselect-trigger:hover:not(:disabled) {
     border-color: var(--accent);
 }
 

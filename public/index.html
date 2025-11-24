@@ -209,11 +209,7 @@
                     Dostávejte notifikace o změnách v rozvrhu - odpadlé hodiny, suplování, změny místností a další.
                 </p>
 
-                <button id="notificationToggleEnable" class="notification-toggle-btn">
-                    Zapnout notifikace
-                </button>
-
-                <div class="notification-section" id="notificationSection" style="display: none;">
+                <div class="notification-section" id="notificationSection">
                     <h3>Sledované rozvrhy</h3>
                     <p style="font-size: 0.9em; opacity: 0.8; margin-bottom: 10px;">
                         Vyberte rozvrhy, pro které chcete dostávat notifikace:
@@ -236,6 +232,10 @@
                         </div>
                     </div>
                 </div>
+
+                <button id="notificationToggleEnable" class="notification-toggle-btn" disabled>
+                    Zapnout notifikace
+                </button>
 
                 <button id="notificationToggleDisable" class="notification-toggle-btn danger" style="display: none;">
                     Vypnout notifikace

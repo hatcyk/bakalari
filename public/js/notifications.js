@@ -244,23 +244,48 @@ function updateNotificationModalContent() {
         }
     }
 
-    // Update button visibility based on notification state
+    // Populate dropdown options first
+    populateMultiselectOptions();
+    loadWatchedTimetables();
+
+    // Update button and dropdown state based on notification status
+    updateNotificationUIState();
+}
+
+/**
+ * Update UI state based on notification enabled/disabled
+ */
+function updateNotificationUIState() {
+    const multiselect = document.getElementById('timetablesMultiselect');
+
     if (state.notificationsEnabled) {
-        // Show disable button and dropdown
+        // Notifications are ON - show disable button, disable dropdown
         if (dom.notificationToggleEnable) dom.notificationToggleEnable.style.display = 'none';
         if (dom.notificationToggleDisable) dom.notificationToggleDisable.style.display = 'block';
-        if (dom.notificationSection) dom.notificationSection.style.display = 'block';
+        if (multiselect) multiselect.classList.add('disabled');
     } else {
-        // Show enable button only
+        // Notifications are OFF - show enable button, enable dropdown
         if (dom.notificationToggleEnable) dom.notificationToggleEnable.style.display = 'block';
         if (dom.notificationToggleDisable) dom.notificationToggleDisable.style.display = 'none';
-        if (dom.notificationSection) dom.notificationSection.style.display = 'none';
-    }
+        if (multiselect) multiselect.classList.remove('disabled');
 
-    // Populate timetable selection list
-    if (state.notificationsEnabled) {
-        populateMultiselectOptions();
-        loadWatchedTimetables();
+        // Update enable button state based on selection
+        updateEnableButtonState();
+    }
+}
+
+/**
+ * Update enable button state based on watched timetables
+ */
+function updateEnableButtonState() {
+    if (!dom.notificationToggleEnable) return;
+
+    const hasSelection = state.watchedTimetables && state.watchedTimetables.length > 0;
+
+    if (hasSelection) {
+        dom.notificationToggleEnable.disabled = false;
+    } else {
+        dom.notificationToggleEnable.disabled = true;
     }
 }
 
@@ -270,6 +295,12 @@ function updateNotificationModalContent() {
 export async function enableNotifications() {
     const button = dom.notificationToggleEnable;
     if (!button) return;
+
+    // Check if at least one timetable is selected
+    if (!state.watchedTimetables || state.watchedTimetables.length === 0) {
+        alert('Nejdřív vyberte alespoň jeden rozvrh ke sledování.');
+        return;
+    }
 
     // Disable button during processing to prevent spam clicks
     button.disabled = true;
@@ -285,8 +316,7 @@ export async function enableNotifications() {
         } else {
             alert('Nepodařilo se zapnout notifikace: ' + error.message);
         }
-    } finally {
-        // Re-enable button
+        // Re-enable button on error
         button.disabled = false;
         button.textContent = originalText;
     }
@@ -324,7 +354,6 @@ function populateMultiselectOptions() {
 
     const scheduleTypes = [
         { value: 'Actual', label: 'Aktuální' },
-        { value: 'Permanent', label: 'Stálý' },
         { value: 'Next', label: 'Příští' }
     ];
 
@@ -435,15 +464,30 @@ async function handleMultiselectChange(event) {
         );
     }
 
+    // Update state immediately for UI responsiveness
+    updateState('watchedTimetables', watchedTimetables);
+    updateMultiselectLabel();
+    updateEnableButtonState();
+
     // Save to server
     try {
         await saveWatchedTimetables(watchedTimetables);
-        updateMultiselectLabel();
         console.log('Watched timetables updated:', watchedTimetables);
     } catch (error) {
         console.error('Failed to save watched timetables:', error);
         // Revert checkbox state on error
         checkbox.checked = !checkbox.checked;
+        // Revert state
+        if (checkbox.checked) {
+            watchedTimetables = watchedTimetables.filter(t =>
+                !(t.type === type && t.id === id && t.scheduleType === scheduleType)
+            );
+        } else {
+            watchedTimetables.push(timetableEntry);
+        }
+        updateState('watchedTimetables', watchedTimetables);
+        updateMultiselectLabel();
+        updateEnableButtonState();
     }
 }
 
@@ -565,8 +609,16 @@ async function loadWatchedTimetables() {
         const data = await response.json();
         updateState('watchedTimetables', data.watchedTimetables || []);
 
-        // Update checkboxes
+        // Update notification enabled state based on server data
+        const hasNotifications = data.hasTokens || false;
+        updateState('notificationsEnabled', hasNotifications);
+
+        console.log(`✅ Loaded preferences - Watched: ${data.watchedTimetables?.length || 0}, Notifications: ${hasNotifications ? 'ON' : 'OFF'}`);
+
+        // Update UI
         updateWatchedTimetablesUI();
+        updateNotificationBellUI();
+        updateNotificationUIState();
 
     } catch (error) {
         console.error('Failed to load watched timetables:', error);
@@ -596,8 +648,9 @@ function updateWatchedTimetablesUI() {
         checkbox.checked = isWatched;
     });
 
-    // Update label
+    // Update label and button state
     updateMultiselectLabel();
+    updateEnableButtonState();
 }
 
 /**

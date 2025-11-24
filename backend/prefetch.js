@@ -16,6 +16,46 @@ const SCHEDULE_TYPES = ['Actual', 'Permanent', 'Next'];
 const ENTITY_TYPES = ['Class', 'Teacher', 'Room'];
 
 /**
+ * Helper function to abbreviate teacher name from "Surname Firstname" format
+ */
+function abbreviateTeacherName(fullName) {
+    if (!fullName) return '';
+
+    // Remove titles
+    let cleaned = fullName.replace(/^(?:Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.|MBA)\s+/gi, '');
+    let prevCleaned = '';
+    while (prevCleaned !== cleaned) {
+        prevCleaned = cleaned;
+        cleaned = cleaned.replace(/^(?:Mgr\.|Ing\.|Bc\.|Dr\.|Ph\.D\.|RNDr\.|PaedDr\.|MBA)\s+/gi, '');
+    }
+    cleaned = cleaned.replace(/,?\s*(?:Ph\.D\.|CSc\.|MBA)$/gi, '');
+    cleaned = cleaned.trim();
+
+    const parts = cleaned.split(/\s+/).filter(p => p.length > 0);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+
+    // Detect if in "Surname Firstname" format (reversed)
+    const firstPart = parts[0].toLowerCase();
+    const surnameSuffixes = ['ová', 'ný', 'ná', 'ský', 'ská', 'ík', 'ek', 'ák', 'vič', 'ovič'];
+    const isReversed = surnameSuffixes.some(suffix => firstPart.endsWith(suffix));
+
+    let firstName, lastName;
+    if (isReversed) {
+        // "Kozakovič Radko" → firstName="Radko", lastName="Kozakovič"
+        lastName = parts[0];
+        firstName = parts[parts.length - 1];
+    } else {
+        // "Radko Kozakovič" → firstName="Radko", lastName="Kozakovič"
+        firstName = parts[0];
+        lastName = parts[parts.length - 1];
+    }
+
+    // Return "R. Kozakovič"
+    return `${firstName[0]}. ${lastName}`;
+}
+
+/**
  * Sleep utility for throttling
  */
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -149,7 +189,9 @@ async function fetchTimetable(type, id, scheduleType, date = null) {
                                 const match = data.removedinfo.match(/\(([^,]+),\s*([^)]+)\)/);
                                 if (match) {
                                     subject = match[1].trim();
-                                    teacher = match[2].trim();
+                                    // Teacher name from removedinfo - abbreviate it (e.g., "Kozakovič Radko" → "R. Kozakovič")
+                                    const fullTeacherName = match[2].trim();
+                                    teacher = abbreviateTeacherName(fullTeacherName);
                                 } else {
                                     subject = data.subjecttext ? data.subjecttext.split('|')[0].trim() : "";
                                 }

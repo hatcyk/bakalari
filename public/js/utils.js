@@ -195,6 +195,36 @@ export function getCurrentHour() {
     return -1; // Mimo vyučování
 }
 
+// Utility funkce pro získání nadcházející hodiny (následující hodina po aktuální nebo první hodina dne)
+export function getUpcomingHour() {
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const currentHour = getCurrentHour();
+
+    // Pokud právě probíhá hodina, najdeme následující
+    if (currentHour !== -1) {
+        // Najdeme následující hodinu v lessonTimes
+        for (const lesson of lessonTimes) {
+            if (lesson.hour > currentHour) {
+                return lesson.hour;
+            }
+        }
+        return -1; // Žádná další hodina (konec vyučování)
+    }
+
+    // Pokud je mimo hodiny (přestávka nebo ráno), najdeme první budoucí hodinu
+    for (const lesson of lessonTimes) {
+        const [startH, startM] = lesson.start;
+        // Pokud je čas před začátkem této hodiny
+        if (hour < startH || (hour === startH && minute < startM)) {
+            return lesson.hour;
+        }
+    }
+
+    return -1; // Žádná nadcházející hodina (konec vyučování nebo večer)
+}
+
 // Parse group name to extract class and group number
 export function parseGroupName(groupName) {
     if (!groupName) return null;

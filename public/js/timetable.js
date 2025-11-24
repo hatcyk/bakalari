@@ -7,6 +7,7 @@ import {
     standardizeGroupName,
     getTodayIndex,
     getCurrentHour,
+    getUpcomingHour,
     parseGroupName
 } from './utils.js';
 import { showLessonModal } from './modal.js';
@@ -154,6 +155,7 @@ export function renderTimetable(data) {
 
     const todayIndex = getTodayIndex();
     const currentHour = getCurrentHour();
+    const upcomingHour = getUpcomingHour();
 
     // Zjistíme všechny hodiny, které se vyskytují v rozvrhu
     const allHours = [...new Set(data.map(d => d.hour))].sort((a, b) => a - b);
@@ -307,6 +309,12 @@ export function renderTimetable(data) {
                     if (dayIndex === todayIndex && hour === currentHour) {
                         cardClass += ' current-time';
                     }
+
+                    // Zvýraznění nadcházející hodiny
+                    if (dayIndex === todayIndex && hour === upcomingHour && hour !== currentHour) {
+                        cardClass += ' upcoming';
+                    }
+
                     card.className = cardClass;
 
                     const displaySubject = abbreviateSubject(lesson.subject);

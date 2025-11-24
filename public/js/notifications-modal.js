@@ -345,9 +345,9 @@ function updateDebugSectionVisibility() {
 }
 
 /**
- * Initialize event listeners
+ * Initialize event listeners and load notification state
  */
-export function initNotificationButton() {
+export async function initNotificationButton() {
     if (dom.notificationBell) {
         dom.notificationBell.addEventListener('click', showNotificationModal);
     }
@@ -365,4 +365,8 @@ export function initNotificationButton() {
 
     // Check debug mode and show/hide debug section
     updateDebugSectionVisibility();
+
+    // Load notification preferences and update bell UI on startup
+    await loadNotificationPreferences();
+    updateNotificationBellUI();
 }

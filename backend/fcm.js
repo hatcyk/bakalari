@@ -265,7 +265,7 @@ async function processPendingChanges() {
 }
 
 /**
- * Send API outage notification to all users with notifications enabled
+ * Send API outage notification to users with system status notifications enabled
  */
 async function sendApiOutageNotification() {
     console.log('\n⚠️  Sending API outage notification...');
@@ -273,25 +273,30 @@ async function sendApiOutageNotification() {
     try {
         const db = getFirestore();
 
-        // Get all users with tokens
+        // Get all users with systemStatus notifications enabled
         const usersSnapshot = await db.collection('users').get();
 
-        const allTokens = [];
+        const tokensToNotify = [];
 
         usersSnapshot.forEach(userDoc => {
             const userData = userDoc.data();
-            if (userData.tokens && userData.tokens.length > 0) {
-                allTokens.push(...userData.tokens);
+            const preferences = userData.preferences;
+
+            // Check if user has system status notifications enabled (default: true)
+            const systemStatusEnabled = preferences?.notificationTypes?.systemStatus !== false;
+
+            if (systemStatusEnabled && userData.tokens && userData.tokens.length > 0) {
+                tokensToNotify.push(...userData.tokens);
             }
         });
 
-        if (allTokens.length === 0) {
-            console.log('⚠️  No users to notify about API outage');
-            return;
+        if (tokensToNotify.length === 0) {
+            console.log('⚠️  No users with system status notifications enabled');
+            return { successCount: 0, failureCount: 0 };
         }
 
         const notification = {
-            title: 'Bakalari API není dostupné',
+            title: 'Bakaláři nedostupné',
             body: 'Rozvrhy se momentálně nemohou aktualizovat. Zkusíme to znovu za chvíli.',
             data: {
                 type: 'api_outage',
@@ -300,7 +305,7 @@ async function sendApiOutageNotification() {
             icon: '/icon-192.png'
         };
 
-        const result = await sendNotificationToTokens(allTokens, notification);
+        const result = await sendNotificationToTokens(tokensToNotify, notification);
 
         console.log(`✅ Sent API outage notification to ${result.successCount} devices`);
 
@@ -312,10 +317,64 @@ async function sendApiOutageNotification() {
     }
 }
 
+/**
+ * Send API restored notification to users with system status notifications enabled
+ */
+async function sendApiRestoredNotification() {
+    console.log('\n✅ Sending API restored notification...');
+
+    try {
+        const db = getFirestore();
+
+        // Get all users with systemStatus notifications enabled
+        const usersSnapshot = await db.collection('users').get();
+
+        const tokensToNotify = [];
+
+        usersSnapshot.forEach(userDoc => {
+            const userData = userDoc.data();
+            const preferences = userData.preferences;
+
+            // Check if user has system status notifications enabled (default: true)
+            const systemStatusEnabled = preferences?.notificationTypes?.systemStatus !== false;
+
+            if (systemStatusEnabled && userData.tokens && userData.tokens.length > 0) {
+                tokensToNotify.push(...userData.tokens);
+            }
+        });
+
+        if (tokensToNotify.length === 0) {
+            console.log('⚠️  No users with system status notifications enabled');
+            return { successCount: 0, failureCount: 0 };
+        }
+
+        const notification = {
+            title: 'Bakaláři opět fungují',
+            body: 'Rozvrhy se úspěšně aktualizují.',
+            data: {
+                type: 'api_restored',
+                timestamp: new Date().toISOString()
+            },
+            icon: '/icon-192.png'
+        };
+
+        const result = await sendNotificationToTokens(tokensToNotify, notification);
+
+        console.log(`✅ Sent API restored notification to ${result.successCount} devices`);
+
+        return result;
+
+    } catch (error) {
+        console.error('❌ Failed to send API restored notification:', error.message);
+        throw error;
+    }
+}
+
 module.exports = {
     sendNotificationToToken,
     sendNotificationToTokens,
     getUsersWatchingTimetable,
     processPendingChanges,
     sendApiOutageNotification,
+    sendApiRestoredNotification,
 };

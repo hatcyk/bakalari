@@ -229,8 +229,13 @@ export async function loadNotificationPreferences() {
         // Update state
         updateState('watchedTimetables', data.watchedTimetables || []);
         updateState('notificationsEnabled', data.hasTokens || false);
+        updateState('globalNotificationPreferences', data.notificationTypes || {
+            lessonReminders: false,
+            systemStatus: true
+        });
 
         debug.log(`✅ Loaded preferences - Watched: ${data.watchedTimetables?.length || 0}, Notifications: ${data.hasTokens ? 'ON' : 'OFF'}`);
+        debug.log('   Global preferences:', data.notificationTypes);
 
         return data;
 
@@ -266,6 +271,38 @@ export async function saveWatchedTimetables(timetables) {
 
     } catch (error) {
         debug.error('Failed to save watched timetables:', error);
+        throw error;
+    }
+}
+
+/**
+ * Save global notification preferences (lessonReminders, systemStatus)
+ */
+export async function saveGlobalNotificationPreferences(preferences) {
+    try {
+        const userId = localStorage.getItem('userId');
+
+        if (!userId) {
+            throw new Error('User ID not found');
+        }
+
+        const response = await fetch('/api/fcm/update-global-preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId,
+                notificationTypes: preferences
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save global preferences');
+        }
+
+        debug.log('✅ Global notification preferences saved', preferences);
+
+    } catch (error) {
+        debug.error('Failed to save global preferences:', error);
         throw error;
     }
 }

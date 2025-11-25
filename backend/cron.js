@@ -6,8 +6,11 @@
 const cron = require('node-cron');
 const { prefetchAllData } = require('./prefetch');
 const { initializeFirebaseAdmin } = require('./firebase-admin-init');
+const { sendLessonReminders } = require('./lesson-reminder');
+const { sendApiOutageNotification, sendApiRestoredNotification } = require('./fcm');
 
 let cronJob = null;
+let lessonReminderCron = null;
 let isRunning = false;
 
 // Track last prefetch status
@@ -20,6 +23,9 @@ let lastPrefetchStatus = {
     totalRequests: 0,
     error: null
 };
+
+// Track previous health status for change detection
+let previousHealthStatus = null;
 
 /**
  * Run prefetch with error handling and status tracking
@@ -45,8 +51,10 @@ async function runPrefetch() {
         console.log(`   Success: ${result.successCount}/${result.totalRequests}`);
 
         // Update status - healthy if we got definitions
+        const isHealthy = result.definitionsCount > 0;
+
         lastPrefetchStatus = {
-            isHealthy: result.definitionsCount > 0,
+            isHealthy: isHealthy,
             lastRun: startTime,
             lastSuccess: startTime,
             definitionsCount: result.definitionsCount || 0,
@@ -54,6 +62,9 @@ async function runPrefetch() {
             totalRequests: result.totalRequests,
             error: result.definitionsCount === 0 ? 'No definitions fetched - API may be down or cookie expired' : null
         };
+
+        // Detect API status change and send notifications
+        await detectAndNotifyStatusChange(isHealthy);
 
     } catch (error) {
         console.error(`❌ Prefetch failed:`, error.message);
@@ -70,10 +81,47 @@ async function runPrefetch() {
             error: error.message
         };
 
+        // Detect API status change and send notifications
+        await detectAndNotifyStatusChange(false);
+
     } finally {
         isRunning = false;
         const endTime = new Date();
         console.log(`🕐 Prefetch ended at: ${endTime.toLocaleString('cs-CZ')}\n`);
+    }
+}
+
+/**
+ * Detect API status change and send notifications if needed
+ */
+async function detectAndNotifyStatusChange(currentHealth) {
+    // Skip if this is the first run (previousHealthStatus not set yet)
+    if (previousHealthStatus === null) {
+        previousHealthStatus = currentHealth;
+        console.log(`🔄 Initial API health status: ${currentHealth ? 'healthy' : 'unhealthy'}`);
+        return;
+    }
+
+    // Check if status changed
+    if (previousHealthStatus !== currentHealth) {
+        console.log(`\n🔔 API status changed: ${previousHealthStatus ? 'healthy' : 'unhealthy'} → ${currentHealth ? 'healthy' : 'unhealthy'}`);
+
+        try {
+            if (!currentHealth) {
+                // API went down
+                console.log('⚠️  Sending API outage notification...');
+                await sendApiOutageNotification();
+            } else {
+                // API restored
+                console.log('✅ Sending API restored notification...');
+                await sendApiRestoredNotification();
+            }
+        } catch (error) {
+            console.error('Failed to send status change notification:', error.message);
+        }
+
+        // Update previous status
+        previousHealthStatus = currentHealth;
     }
 }
 
@@ -107,18 +155,29 @@ function startCronJob() {
         runPrefetch().catch(err => console.error('Scheduled prefetch failed:', err));
     });
 
-    console.log('✅ Cron job scheduled: Running every 10 minutes');
-    console.log('   Next run will be in approximately 10 minutes\n');
+    // Schedule lesson reminder cron: Every minute
+    lessonReminderCron = cron.schedule('* * * * *', () => {
+        sendLessonReminders().catch(err => console.error('Lesson reminder failed:', err));
+    });
+
+    console.log('✅ Cron jobs scheduled:');
+    console.log('   - Prefetch: Running every 10 minutes');
+    console.log('   - Lesson reminders: Running every minute\n');
 }
 
 /**
- * Stop cron job
+ * Stop cron jobs
  */
 function stopCronJob() {
     if (cronJob) {
         cronJob.stop();
         cronJob = null;
-        console.log('🛑 Cron job stopped');
+        console.log('🛑 Prefetch cron job stopped');
+    }
+    if (lessonReminderCron) {
+        lessonReminderCron.stop();
+        lessonReminderCron = null;
+        console.log('🛑 Lesson reminder cron job stopped');
     }
 }
 
@@ -128,6 +187,7 @@ function stopCronJob() {
 function getCronStatus() {
     return {
         running: cronJob !== null,
+        lessonReminderRunning: lessonReminderCron !== null,
         prefetchInProgress: isRunning,
     };
 }

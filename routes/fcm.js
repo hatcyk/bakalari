@@ -133,6 +133,54 @@ router.post('/update-preferences', async (req, res) => {
     }
 });
 
+// Update global notification preferences (lessonReminders, systemStatus)
+router.post('/update-global-preferences', async (req, res) => {
+    try {
+        const { userId, notificationTypes } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        if (!notificationTypes || typeof notificationTypes !== 'object') {
+            return res.status(400).json({ error: 'notificationTypes must be an object' });
+        }
+
+        const db = getFirestore();
+        const userRef = db.collection('users').doc(userId);
+        const userDoc = await userRef.get();
+
+        if (userDoc.exists) {
+            // Update existing user
+            await userRef.update({
+                'preferences.notificationTypes.lessonReminders': notificationTypes.lessonReminders ?? false,
+                'preferences.notificationTypes.systemStatus': notificationTypes.systemStatus ?? true,
+                lastUpdated: new Date().toISOString()
+            });
+        } else {
+            // Create new user
+            await userRef.set({
+                tokens: [],
+                preferences: {
+                    watchedTimetables: [],
+                    notificationTypes: {
+                        lessonReminders: notificationTypes.lessonReminders ?? false,
+                        systemStatus: notificationTypes.systemStatus ?? true
+                    }
+                },
+                createdAt: new Date().toISOString(),
+                lastUpdated: new Date().toISOString()
+            });
+        }
+
+        res.json({ success: true, message: 'Global preferences updated successfully' });
+
+    } catch (error) {
+        console.error('FCM update global preferences error:', error);
+        res.status(500).json({ error: 'Failed to update global preferences' });
+    }
+});
+
 // Get user notification preferences
 router.get('/preferences/:userId', async (req, res) => {
     try {
@@ -143,14 +191,25 @@ router.get('/preferences/:userId', async (req, res) => {
 
         if (userDoc.exists) {
             const userData = userDoc.data();
+            const prefs = userData.preferences || {};
+            const notifTypes = prefs.notificationTypes || {};
+
             res.json({
-                watchedTimetables: userData.preferences?.watchedTimetables || [],
-                hasTokens: (userData.tokens || []).length > 0
+                watchedTimetables: prefs.watchedTimetables || [],
+                hasTokens: (userData.tokens || []).length > 0,
+                notificationTypes: {
+                    lessonReminders: notifTypes.lessonReminders ?? false,
+                    systemStatus: notifTypes.systemStatus ?? true
+                }
             });
         } else {
             res.json({
                 watchedTimetables: [],
-                hasTokens: false
+                hasTokens: false,
+                notificationTypes: {
+                    lessonReminders: false,
+                    systemStatus: true
+                }
             });
         }
 

@@ -110,32 +110,19 @@
 }
 
 .lesson-card.current-time {
-    background: rgba(235, 93, 67, 0.15);
-    border: 2px solid rgba(235, 93, 67, 0.4);
-    box-shadow: 0 2px 12px rgba(235, 93, 67, 0.25);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(239, 68, 68, 0.15) 100%);
+    border: 2px solid rgba(239, 68, 68, 0.6);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
     position: relative;
 }
 
-.lesson-card.current-time::before {
-    content: '●';
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    color: #EB5D43;
-    font-size: 0.75rem;
-    z-index: 10;
-}
-
-/* When lesson is both current and changed, adjust positions */
-.lesson-card.current-time.changed::before {
-    right: 32px;
-}
+/* Orange circle removed - using border and background instead */
 
 /* Upcoming lesson - next lesson after current or first lesson of the day */
 .lesson-card.upcoming {
-    background: rgba(0, 43, 79, 0.25);
-    border: 2px solid rgba(0, 43, 79, 0.5);
-    box-shadow: 0 2px 12px rgba(0, 43, 79, 0.2);
+    background: linear-gradient(135deg, rgba(235, 93, 67, 0.25) 0%, rgba(235, 93, 67, 0.15) 100%);
+    border: 2px solid rgba(235, 93, 67, 0.6);
+    box-shadow: 0 4px 16px rgba(235, 93, 67, 0.3);
     position: relative;
 }
 
@@ -144,9 +131,21 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    color: #002B4F;
-    font-size: 0.7rem;
+    color: #EB5D43;
+    font-size: 0.85rem;
     z-index: 10;
+    animation: pulse-upcoming 2s ease-in-out infinite;
+}
+
+@keyframes pulse-upcoming {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
 }
 
 /* When lesson is both upcoming and changed, adjust positions */

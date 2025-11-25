@@ -240,10 +240,16 @@ export function getUpcomingHour() {
 export function isPastLesson(dayIndex, hour) {
     const todayIndex = getTodayIndex();
 
-    // Pouze pro dnešek kontrolujeme proběhlé hodiny
-    if (dayIndex !== todayIndex) return false;
+    // Pokud je víkend (todayIndex = -1), žádná hodina není proběhlá
+    if (todayIndex === -1) return false;
 
-    // Najdeme informace o hodině
+    // Pokud je den v minulosti (pondělí když je úterý), hodina proběhla
+    if (dayIndex < todayIndex) return true;
+
+    // Pokud je den v budoucnosti (čtvrtek když je úterý), hodina neproběhla
+    if (dayIndex > todayIndex) return false;
+
+    // Pro dnešek kontrolujeme čas hodiny
     const lessonInfo = lessonTimes.find(l => l.hour === hour);
     if (!lessonInfo) return false;
 

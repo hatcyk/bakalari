@@ -299,6 +299,31 @@ export function renderTimetable(data) {
                 // Najdeme všechny hodiny pro tento den a hodinu
                 let lessons = data.filter(d => d.day === dayIndex && d.hour === hour);
 
+                // Seřadit hodiny podle skupiny (1. sk., 2. sk., atd.)
+                lessons.sort((a, b) => {
+                    // Pokud jedna hodina nemá skupinu, ta půjde první
+                    if (!a.group && b.group) return -1;
+                    if (a.group && !b.group) return 1;
+                    if (!a.group && !b.group) return 0;
+
+                    // Extrahovat číslo skupiny z textu (např. "1. sk." -> 1, "2. sk." -> 2)
+                    const extractGroupNumber = (groupStr) => {
+                        const match = groupStr.match(/(\d+)\.\s*sk/i);
+                        return match ? parseInt(match[1], 10) : 999;
+                    };
+
+                    const groupA = extractGroupNumber(a.group);
+                    const groupB = extractGroupNumber(b.group);
+
+                    // Seřadit podle čísla skupiny
+                    if (groupA !== groupB) {
+                        return groupA - groupB;
+                    }
+
+                    // Pokud mají stejné číslo skupiny nebo nemají číslo, seřadit abecedně
+                    return a.group.localeCompare(b.group);
+                });
+
                 lessons.forEach(lesson => {
                     const card = document.createElement('div');
                     let cardClass = 'lesson-card';

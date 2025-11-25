@@ -14,7 +14,7 @@ export const subjectAbbreviations = {
     'CAD systémy': 'CAD',
     'Webové aplikace': 'WA',
     'Mobilní aplikace': 'MA',
-    'Telekomunikace a Sítě': 'TKS',
+    'Telekomunikace a sítě': 'TKS',
 
     // Elektro předměty
     'Elektrická měření': 'EM',

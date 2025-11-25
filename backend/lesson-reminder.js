@@ -38,7 +38,7 @@ const subjectAbbreviations = {
     'CAD systémy': 'CAD',
     'Webové aplikace': 'WA',
     'Mobilní aplikace': 'MA',
-    'Telekomunikace a Sítě': 'TKS',
+    'Telekomunikace a sítě': 'TKS',
     'Elektrická měření': 'EM',
     'Elektronika': 'ELN',
     'Elektrotechnika': 'ELT',

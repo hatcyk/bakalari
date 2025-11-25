@@ -198,6 +198,35 @@ function setupModalLinks() {
                     });
                 }
 
+                // If still no match, try matching with initials
+                if (!teacher) {
+                    const searchParts = normalizedSearchName.split(/\s+/);
+                    teacher = definitions.teachers?.find(t => {
+                        const defParts = normalizeTeacherName(t.name).split(/\s+/);
+
+                        // Check if parts match (handling initials like "r." matching "radek")
+                        if (searchParts.length !== defParts.length) return false;
+
+                        return searchParts.every((searchPart, i) => {
+                            const defPart = defParts[i];
+                            // Remove dots for comparison
+                            const cleanSearch = searchPart.replace(/\./g, '');
+                            const cleanDef = defPart.replace(/\./g, '');
+
+                            // If search is shorter (likely initial), check if def starts with it
+                            if (cleanSearch.length < cleanDef.length) {
+                                return cleanDef.startsWith(cleanSearch);
+                            }
+                            // If def is shorter (likely initial), check if search starts with it
+                            if (cleanDef.length < cleanSearch.length) {
+                                return cleanSearch.startsWith(cleanDef);
+                            }
+                            // Otherwise must be exact match
+                            return cleanSearch === cleanDef;
+                        });
+                    });
+                }
+
                 // If still no match, try to find by ID
                 if (!teacher) {
                     teacher = definitions.teachers?.find(t => t.id === name);

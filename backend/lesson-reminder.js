@@ -332,9 +332,14 @@ async function sendLessonReminders() {
                         lesson.type !== 'removed' && lesson.subject && lesson.subject.trim() !== ''
                     );
 
-                    if (validLessons.length > 0) {
+                    // Filter out "Dívčí tělocvik" lessons
+                    const filteredLessons = validLessons.filter(lesson =>
+                        !lesson.subject || !lesson.subject.toLowerCase().includes('dívčí tělocvik')
+                    );
+
+                    if (filteredLessons.length > 0) {
                         userHasLesson = true;
-                        userLessons.push(...validLessons);
+                        userLessons.push(...filteredLessons);
                     }
                 }
 

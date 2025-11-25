@@ -26,53 +26,6 @@ router.get('/status', (req, res) => {
     });
 });
 
-// Send test notification to specific user
-router.post('/test-notification', requireDebugMode, async (req, res) => {
-    try {
-        const { userId } = req.body;
-
-        if (!userId) {
-            return res.status(400).json({ error: 'userId is required' });
-        }
-
-        const db = getFirestore();
-        const userDoc = await db.collection('users').doc(userId).get();
-
-        if (!userDoc.exists) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const userData = userDoc.data();
-        const tokens = userData.tokens || [];
-
-        if (tokens.length === 0) {
-            return res.status(400).json({ error: 'User has no FCM tokens' });
-        }
-
-        const notification = {
-            title: '🧪 Testovací notifikace',
-            body: 'Tohle je testovací notifikace z debug módu!',
-            data: {
-                type: 'test',
-                timestamp: new Date().toISOString()
-            },
-            icon: '/icon-192.png'
-        };
-
-        const result = await sendNotificationToTokens(tokens, notification);
-
-        res.json({
-            success: true,
-            message: `Test notification sent to ${result.successCount} device(s)`,
-            result: result
-        });
-
-    } catch (error) {
-        console.error('Test notification error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // Send test notification to ALL users
 router.post('/test-notification-all', requireDebugMode, async (req, res) => {
     try {

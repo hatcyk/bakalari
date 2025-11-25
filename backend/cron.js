@@ -12,13 +12,13 @@ let isRunning = false;
 
 // Track last prefetch status
 let lastPrefetchStatus = {
-    isHealthy: false, // Start as unhealthy until first successful prefetch
+    isHealthy: true, // Start as healthy (optimistic) - first prefetch runs immediately
     lastRun: null,
     lastSuccess: null,
     definitionsCount: 0,
     successCount: 0,
     totalRequests: 0,
-    error: 'Waiting for first prefetch'
+    error: null
 };
 
 /**

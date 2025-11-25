@@ -133,7 +133,7 @@ router.post('/update-preferences', async (req, res) => {
     }
 });
 
-// Update global notification preferences (lessonReminders, systemStatus)
+// Update global notification preferences (systemStatus)
 router.post('/update-global-preferences', async (req, res) => {
     try {
         const { userId, notificationTypes } = req.body;
@@ -153,7 +153,6 @@ router.post('/update-global-preferences', async (req, res) => {
         if (userDoc.exists) {
             // Update existing user
             await userRef.update({
-                'preferences.notificationTypes.lessonReminders': notificationTypes.lessonReminders ?? false,
                 'preferences.notificationTypes.systemStatus': notificationTypes.systemStatus ?? true,
                 lastUpdated: new Date().toISOString()
             });
@@ -164,7 +163,6 @@ router.post('/update-global-preferences', async (req, res) => {
                 preferences: {
                     watchedTimetables: [],
                     notificationTypes: {
-                        lessonReminders: notificationTypes.lessonReminders ?? false,
                         systemStatus: notificationTypes.systemStatus ?? true
                     }
                 },
@@ -198,7 +196,6 @@ router.get('/preferences/:userId', async (req, res) => {
                 watchedTimetables: prefs.watchedTimetables || [],
                 hasTokens: (userData.tokens || []).length > 0,
                 notificationTypes: {
-                    lessonReminders: notifTypes.lessonReminders ?? false,
                     systemStatus: notifTypes.systemStatus ?? true
                 }
             });
@@ -207,7 +204,6 @@ router.get('/preferences/:userId', async (req, res) => {
                 watchedTimetables: [],
                 hasTokens: false,
                 notificationTypes: {
-                    lessonReminders: false,
                     systemStatus: true
                 }
             });

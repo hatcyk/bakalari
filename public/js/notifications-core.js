@@ -230,7 +230,6 @@ export async function loadNotificationPreferences() {
         updateState('watchedTimetables', data.watchedTimetables || []);
         updateState('notificationsEnabled', data.hasTokens || false);
         updateState('globalNotificationPreferences', data.notificationTypes || {
-            lessonReminders: false,
             systemStatus: true
         });
 
@@ -276,7 +275,7 @@ export async function saveWatchedTimetables(timetables) {
 }
 
 /**
- * Save global notification preferences (lessonReminders, systemStatus)
+ * Save global notification preferences (systemStatus)
  */
 export async function saveGlobalNotificationPreferences(preferences) {
     try {

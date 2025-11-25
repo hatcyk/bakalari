@@ -59,6 +59,27 @@ export const NOTIFICATION_TYPES = {
                 default: false
             }
         }
+    },
+    reminders: {
+        title: 'Upomínky',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+        options: {
+            next_lesson_room: {
+                label: 'Kam jít na další hodinu',
+                description: 'Připomínka s číslem učebny před začátkem hodiny',
+                default: false
+            },
+            next_lesson_teacher: {
+                label: 'Koho máte na další hodinu',
+                description: 'Připomínka s jménem učitele před začátkem hodiny',
+                default: false
+            },
+            next_lesson_subject: {
+                label: 'Co máte další hodinu',
+                description: 'Připomínka s názvem předmětu před začátkem hodiny',
+                default: false
+            }
+        }
     }
 };
 

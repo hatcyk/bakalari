@@ -211,35 +211,26 @@ export async function disableNotificationsHandler() {
  * Initialize global notification toggles
  */
 function initializeGlobalToggles() {
-    const lessonRemindersToggle = document.getElementById('lessonRemindersToggle');
     const systemStatusToggle = document.getElementById('systemStatusToggle');
 
-    if (!lessonRemindersToggle || !systemStatusToggle) return;
+    if (!systemStatusToggle) return;
 
     // Load current values from state (loaded by loadNotificationPreferences)
-    lessonRemindersToggle.checked = state.globalNotificationPreferences?.lessonReminders ?? false;
     systemStatusToggle.checked = state.globalNotificationPreferences?.systemStatus ?? true;
 
     // Disable toggles if notifications are not enabled
     if (!state.notificationsEnabled) {
-        lessonRemindersToggle.disabled = true;
         systemStatusToggle.disabled = true;
     } else {
-        lessonRemindersToggle.disabled = false;
         systemStatusToggle.disabled = false;
     }
 
     // Add event listeners
-    lessonRemindersToggle.addEventListener('change', async () => {
-        await handleGlobalToggleChange('lessonReminders', lessonRemindersToggle.checked);
-    });
-
     systemStatusToggle.addEventListener('change', async () => {
         await handleGlobalToggleChange('systemStatus', systemStatusToggle.checked);
     });
 
     debug.log('✅ Global notification toggles initialized', {
-        lessonReminders: lessonRemindersToggle.checked,
         systemStatus: systemStatusToggle.checked
     });
 }
@@ -263,7 +254,7 @@ async function handleGlobalToggleChange(type, value) {
     } catch (error) {
         debug.error(`Failed to save ${type} preference:`, error);
         // Revert toggle on error
-        const toggle = document.getElementById(type === 'lessonReminders' ? 'lessonRemindersToggle' : 'systemStatusToggle');
+        const toggle = document.getElementById('systemStatusToggle');
         if (toggle) {
             toggle.checked = !value;
         }
@@ -400,22 +391,21 @@ function updateDebugSectionVisibility() {
     const debugSection = document.getElementById('debugSimulateSection');
     if (!debugSection) return;
 
-    // Check if in debug mode by trying to access debug endpoint
-    fetch('/api/debug/test-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'test' })
-    }).then(response => {
-        // If we get 200 or 500, debug mode is enabled
-        // If we get 403, debug mode is disabled
-        if (response.status !== 403) {
-            debugSection.style.display = 'block';
-            populateDebugTimetableSelect();
-        }
-    }).catch(() => {
-        // Network error or other issue - hide debug section
-        debugSection.style.display = 'none';
-    });
+    // Check if in debug mode by checking debug status endpoint
+    fetch('/api/debug/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.debugMode) {
+                debugSection.style.display = 'block';
+                populateDebugTimetableSelect();
+            } else {
+                debugSection.style.display = 'none';
+            }
+        })
+        .catch(() => {
+            // Network error or other issue - hide debug section
+            debugSection.style.display = 'none';
+        });
 }
 
 /**

@@ -180,14 +180,18 @@ async function getUsersWithLessonReminders() {
             const userData = userDoc.data();
             const preferences = userData.preferences;
 
-            // Check if user has lesson reminders enabled
-            const hasLessonReminders = preferences?.notificationTypes?.lessonReminders === true;
+            // Check if user has any lesson reminders enabled in any watched timetable
+            const watchedTimetables = preferences?.watchedTimetables || [];
+            const hasAnyReminders = watchedTimetables.some(timetable => {
+                const reminders = timetable.notificationTypes?.reminders || {};
+                return reminders.next_lesson_room || reminders.next_lesson_teacher || reminders.next_lesson_subject;
+            });
 
-            if (hasLessonReminders && userData.tokens && userData.tokens.length > 0) {
+            if (hasAnyReminders && userData.tokens && userData.tokens.length > 0) {
                 usersWithReminders.push({
                     userId: userDoc.id,
                     tokens: userData.tokens,
-                    watchedTimetables: preferences.watchedTimetables || []
+                    watchedTimetables: watchedTimetables
                 });
             }
         });

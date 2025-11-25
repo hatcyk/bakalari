@@ -72,7 +72,6 @@ app.listen(PORT, HOST, () => {
     if (DEBUG) {
         console.log('\n🔧 DEBUG MODE ENABLED');
         console.log('   Debug endpoints available at /api/debug/*');
-        console.log('   - POST /api/debug/test-notification');
         console.log('   - POST /api/debug/test-notification-all');
         console.log('   - POST /api/debug/simulate-change');
         console.log('   - GET  /api/debug/pending-changes');

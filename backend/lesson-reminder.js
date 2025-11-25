@@ -128,29 +128,67 @@ function abbreviateSubject(subjectName) {
 }
 
 /**
- * Get lesson slot that starts in exactly 5 minutes from now
- * @returns {Object|null} { hour, startTime: [h, m] } or null if no match
+ * Get next lesson reminder time
+ * Logic:
+ * - If currently in a lesson: notify 5 minutes before current lesson ends (about next lesson)
+ * - If not in a lesson yet today: notify 10 minutes before first lesson starts
+ * @returns {Object|null} { hour, startTime: [h, m], label, type: 'next'|'first' } or null if no match
  */
-function getLessonStartingIn5Minutes() {
+function getNextLessonReminder() {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-    // Calculate time in 5 minutes
-    const futureTime = new Date(now.getTime() + 5 * 60 * 1000);
-    const futureHour = futureTime.getHours();
-    const futureMinute = futureTime.getMinutes();
-
-    // Check if future time matches any lesson start time
+    // Find if we're currently in any lesson
+    let currentLesson = null;
     for (const lesson of lessonTimes) {
         const [startH, startM] = lesson.start;
-        if (futureHour === startH && futureMinute === startM) {
-            return {
-                hour: lesson.hour,
-                startTime: lesson.start,
-                label: lesson.label
-            };
+        const [endH, endM] = lesson.end;
+        const startInMinutes = startH * 60 + startM;
+        const endInMinutes = endH * 60 + endM;
+
+        if (currentTimeInMinutes >= startInMinutes && currentTimeInMinutes < endInMinutes) {
+            currentLesson = lesson;
+            break;
         }
+    }
+
+    // Case 1: We're in a lesson - check if we're 5 minutes before it ends
+    if (currentLesson) {
+        const [endH, endM] = currentLesson.end;
+        const endTimeInMinutes = endH * 60 + endM;
+        const minutesUntilEnd = endTimeInMinutes - currentTimeInMinutes;
+
+        // If exactly 5 minutes before end (or within 1 minute window for cron tolerance)
+        if (minutesUntilEnd >= 4 && minutesUntilEnd <= 6) {
+            // Find next lesson slot
+            const nextLessonSlot = lessonTimes.find(l => l.hour === currentLesson.hour + 1);
+            if (nextLessonSlot) {
+                return {
+                    hour: nextLessonSlot.hour,
+                    startTime: nextLessonSlot.start,
+                    label: nextLessonSlot.label,
+                    type: 'next'
+                };
+            }
+        }
+    }
+
+    // Case 2: Not in a lesson - check if we're 10 minutes before first lesson
+    const firstLesson = lessonTimes[0];
+    const [firstStartH, firstStartM] = firstLesson.start;
+    const firstStartInMinutes = firstStartH * 60 + firstStartM;
+    const minutesUntilFirstLesson = firstStartInMinutes - currentTimeInMinutes;
+
+    // If exactly 10 minutes before first lesson (or within 1 minute window)
+    if (minutesUntilFirstLesson >= 9 && minutesUntilFirstLesson <= 11) {
+        return {
+            hour: firstLesson.hour,
+            startTime: firstLesson.start,
+            label: firstLesson.label,
+            type: 'first'
+        };
     }
 
     return null;
@@ -282,15 +320,21 @@ function findLessonInSlot(lessons, hourSlot) {
  * Format lesson notification
  * @param {Object} lesson - Lesson data
  * @param {String} startTime - Start time label (e.g., "8:00")
+ * @param {String} reminderType - 'next' or 'first'
  * @returns {Object} { title, body, data }
  */
-function formatLessonNotification(lesson, startTime) {
+function formatLessonNotification(lesson, startTime, reminderType = 'next') {
     const subjectAbbr = abbreviateSubject(lesson.subject);
     const room = lesson.room || '?';
     const teacher = lesson.teacher || '?';
 
-    // Title: "Za 5 minut: MAT"
-    const title = `Za 5 minut: ${subjectAbbr}`;
+    // Title depends on reminder type
+    let title;
+    if (reminderType === 'first') {
+        title = `Za 10 minut: ${subjectAbbr}`;
+    } else {
+        title = `Příští hodina: ${subjectAbbr}`;
+    }
 
     // Body: "202 • MAT • M. Velingerová"
     const body = `${room} • ${subjectAbbr} • ${teacher}`;
@@ -304,6 +348,7 @@ function formatLessonNotification(lesson, startTime) {
             teacher: lesson.teacher,
             room: room,
             startTime: startTime,
+            reminderType: reminderType,
             timestamp: new Date().toISOString()
         }
     };
@@ -321,14 +366,18 @@ async function sendLessonReminders() {
             return { sent: 0, reason: 'weekend' };
         }
 
-        // 2. Get lesson slot starting in 5 minutes
-        const upcomingLesson = getLessonStartingIn5Minutes();
+        // 2. Get next lesson reminder (either 5 min before current lesson ends, or 10 min before first lesson)
+        const upcomingLesson = getNextLessonReminder();
         if (!upcomingLesson) {
-            // No lesson starting in 5 minutes
+            // No reminder to send at this time
             return { sent: 0, reason: 'no_upcoming_lesson' };
         }
 
-        console.log(`\n📚 Lesson ${upcomingLesson.hour} starts in 5 minutes (${upcomingLesson.label})`);
+        const reminderTypeText = upcomingLesson.type === 'first'
+            ? 'First lesson starts in 10 minutes'
+            : 'Next lesson reminder (5 min before current lesson ends)';
+
+        console.log(`\n📚 ${reminderTypeText}: Lesson ${upcomingLesson.hour} (${upcomingLesson.label})`);
 
         // 3. Get all users with lesson reminders enabled
         const users = await getUsersWithLessonReminders();
@@ -377,13 +426,13 @@ async function sendLessonReminders() {
                 if (userHasLesson && userLessons.length > 0) {
                     // Send notification for first lesson (if multiple, they're usually the same subject)
                     const lesson = userLessons[0];
-                    const notification = formatLessonNotification(lesson, upcomingLesson.label);
+                    const notification = formatLessonNotification(lesson, upcomingLesson.label, upcomingLesson.type);
 
                     const result = await sendNotificationToTokens(user.tokens, notification);
                     totalSent += result.successCount;
                     totalUsers++;
 
-                    console.log(`✅ Sent reminder to user ${user.userId}: ${notification.body}`);
+                    console.log(`✅ Sent reminder to user ${user.userId}: ${notification.title} - ${notification.body}`);
                 }
 
             } catch (error) {
@@ -393,7 +442,7 @@ async function sendLessonReminders() {
 
         console.log(`\n✅ Sent ${totalSent} lesson reminders to ${totalUsers} users`);
 
-        return { sent: totalSent, users: totalUsers, lesson: upcomingLesson.hour };
+        return { sent: totalSent, users: totalUsers, lesson: upcomingLesson.hour, type: upcomingLesson.type };
 
     } catch (error) {
         console.error('❌ Failed to send lesson reminders:', error.message);
@@ -403,6 +452,6 @@ async function sendLessonReminders() {
 
 module.exports = {
     sendLessonReminders,
-    getLessonStartingIn5Minutes,
+    getNextLessonReminder,
     getTodayIndex
 };

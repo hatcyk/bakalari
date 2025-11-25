@@ -6,7 +6,7 @@
 const express = require('express');
 const { getFirestore } = require('../backend/firebase-admin-init');
 const { sendNotificationToTokens } = require('../backend/fcm');
-const { sendLessonReminders, getLessonStartingIn5Minutes, getTodayIndex } = require('../backend/lesson-reminder');
+const { sendLessonReminders, getNextLessonReminder, getTodayIndex } = require('../backend/lesson-reminder');
 
 const router = express.Router();
 
@@ -43,7 +43,7 @@ router.get('/test-ntf', (req, res) => {
     <button onclick="testAction('debug-upcoming')">⏰ Zkontrolovat nadcházející hodiny</button>
 
     <h2>2. Test Lesson Reminders</h2>
-    <button onclick="testAction('test-reminder')">🔔 Otestovat lesson reminder (5 min před hodinou)</button>
+    <button onclick="testAction('test-reminder')">🔔 Otestovat lesson reminder (nová logika)</button>
     <button onclick="testAction('force-reminder')">⚡ Vynutit odeslání reminder (bypass časové kontroly)</button>
 
     <h2>3. Obecné Notifikace</h2>
@@ -172,7 +172,7 @@ router.get('/test-ntf/debug-timetable', async (req, res) => {
 // Debug: Check upcoming lessons
 router.get('/test-ntf/debug-upcoming', async (req, res) => {
     try {
-        const upcomingLesson = getLessonStartingIn5Minutes();
+        const upcomingLesson = getNextLessonReminder();
         const todayIndex = getTodayIndex();
         const now = new Date();
 
@@ -181,8 +181,8 @@ router.get('/test-ntf/debug-upcoming', async (req, res) => {
             currentTime: now.toLocaleString('cs-CZ'),
             todayIndex: todayIndex,
             dayName: ['Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek'][todayIndex] || 'Víkend',
-            upcomingLesson: upcomingLesson || 'No lesson starting in 5 minutes',
-            note: 'Lesson reminders are sent 5 minutes before lesson starts'
+            upcomingLesson: upcomingLesson || 'No reminder to send at this time',
+            note: 'Reminders: 5 min before current lesson ends (next lesson) OR 10 min before first lesson starts'
         });
     } catch (error) {
         res.json({ success: false, error: error.message });

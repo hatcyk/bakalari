@@ -216,7 +216,7 @@ function initializeGlobalToggles() {
     if (!systemStatusToggle) return;
 
     // Load current values from state (loaded by loadNotificationPreferences)
-    systemStatusToggle.checked = state.globalNotificationPreferences?.systemStatus ?? true;
+    systemStatusToggle.checked = state.globalNotificationPreferences?.systemStatus ?? false;
 
     // Disable toggles if notifications are not enabled
     if (!state.notificationsEnabled) {

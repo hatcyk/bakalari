@@ -230,7 +230,7 @@ export async function loadNotificationPreferences() {
         updateState('watchedTimetables', data.watchedTimetables || []);
         updateState('notificationsEnabled', data.hasTokens || false);
         updateState('globalNotificationPreferences', data.notificationTypes || {
-            systemStatus: true
+            systemStatus: false
         });
 
         debug.log(`✅ Loaded preferences - Watched: ${data.watchedTimetables?.length || 0}, Notifications: ${data.hasTokens ? 'ON' : 'OFF'}`);

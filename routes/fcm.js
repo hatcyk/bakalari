@@ -153,7 +153,7 @@ router.post('/update-global-preferences', async (req, res) => {
         if (userDoc.exists) {
             // Update existing user
             await userRef.update({
-                'preferences.notificationTypes.systemStatus': notificationTypes.systemStatus ?? true,
+                'preferences.notificationTypes.systemStatus': notificationTypes.systemStatus ?? false,
                 lastUpdated: new Date().toISOString()
             });
         } else {
@@ -163,7 +163,7 @@ router.post('/update-global-preferences', async (req, res) => {
                 preferences: {
                     watchedTimetables: [],
                     notificationTypes: {
-                        systemStatus: notificationTypes.systemStatus ?? true
+                        systemStatus: notificationTypes.systemStatus ?? false
                     }
                 },
                 createdAt: new Date().toISOString(),
@@ -196,7 +196,7 @@ router.get('/preferences/:userId', async (req, res) => {
                 watchedTimetables: prefs.watchedTimetables || [],
                 hasTokens: (userData.tokens || []).length > 0,
                 notificationTypes: {
-                    systemStatus: notifTypes.systemStatus ?? true
+                    systemStatus: notifTypes.systemStatus ?? false
                 }
             });
         } else {
@@ -204,7 +204,7 @@ router.get('/preferences/:userId', async (req, res) => {
                 watchedTimetables: [],
                 hasTokens: false,
                 notificationTypes: {
-                    systemStatus: true
+                    systemStatus: false
                 }
             });
         }

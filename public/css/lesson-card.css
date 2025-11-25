@@ -126,33 +126,6 @@
     position: relative;
 }
 
-.lesson-card.upcoming::before {
-    content: '▶';
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    color: #EB5D43;
-    font-size: 0.85rem;
-    z-index: 10;
-    animation: pulse-upcoming 2s ease-in-out infinite;
-}
-
-@keyframes pulse-upcoming {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 0.8;
-    }
-}
-
-/* When lesson is both upcoming and changed, adjust positions */
-.lesson-card.upcoming.changed::before {
-    right: 32px;
-}
-
 /* Past lessons - grayed out */
 .lesson-card.past {
     background: rgba(100, 100, 100, 0.15);

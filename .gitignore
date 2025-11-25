@@ -7,3 +7,4 @@ debug_output/
 firebase-service-account.json
 **/firebase-service-account.json
 .firebase/
+dev_curls.md

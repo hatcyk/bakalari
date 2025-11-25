@@ -179,13 +179,37 @@ async function getUsersWithLessonReminders() {
         usersSnapshot.forEach(userDoc => {
             const userData = userDoc.data();
             const preferences = userData.preferences;
+            const userId = userDoc.id;
+
+            // Debug logging for specific user
+            const DEBUG_USER = 'anonymous-1764059732165';
+            const isDebugUser = userId === DEBUG_USER;
+
+            if (isDebugUser) {
+                console.log(`\n🔍 DEBUG USER: ${userId}`);
+                console.log(`   Has tokens: ${userData.tokens ? userData.tokens.length : 0}`);
+                console.log(`   Tokens:`, userData.tokens);
+                console.log(`   Preferences:`, JSON.stringify(preferences, null, 2));
+            }
 
             // Check if user has any lesson reminders enabled in any watched timetable
             const watchedTimetables = preferences?.watchedTimetables || [];
             const hasAnyReminders = watchedTimetables.some(timetable => {
                 const reminders = timetable.notificationTypes?.reminders || {};
-                return reminders.next_lesson_room || reminders.next_lesson_teacher || reminders.next_lesson_subject;
+                const hasReminder = reminders.next_lesson_room || reminders.next_lesson_teacher || reminders.next_lesson_subject;
+
+                if (isDebugUser) {
+                    console.log(`   Timetable: ${timetable.name} (${timetable.type}/${timetable.id})`);
+                    console.log(`     Reminders:`, reminders);
+                    console.log(`     Has any reminder: ${hasReminder}`);
+                }
+
+                return hasReminder;
             });
+
+            if (isDebugUser) {
+                console.log(`   ✅ Has ANY reminders enabled: ${hasAnyReminders}`);
+            }
 
             if (hasAnyReminders && userData.tokens && userData.tokens.length > 0) {
                 usersWithReminders.push({
@@ -193,6 +217,13 @@ async function getUsersWithLessonReminders() {
                     tokens: userData.tokens,
                     watchedTimetables: watchedTimetables
                 });
+
+                if (isDebugUser) {
+                    console.log(`   ✅ User ADDED to reminder list\n`);
+                }
+            } else if (isDebugUser) {
+                console.log(`   ❌ User NOT added to reminder list`);
+                console.log(`      Reason: hasReminders=${hasAnyReminders}, hasTokens=${userData.tokens && userData.tokens.length > 0}\n`);
             }
         });
 

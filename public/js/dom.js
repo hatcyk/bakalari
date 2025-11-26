@@ -14,6 +14,7 @@ export const dom = {
     outageBanner: null,
     daySelector: null,
     themeToggle: null,
+    refreshBtn: null,
     lessonModal: null,
     modalClose: null,
     weekViewToggle: null,
@@ -48,6 +49,7 @@ export function initDOM() {
     dom.outageBanner = document.getElementById('outageBanner');
     dom.daySelector = document.getElementById('daySelector');
     dom.themeToggle = document.getElementById('themeToggle');
+    dom.refreshBtn = document.getElementById('refreshBtn');
     dom.lessonModal = document.getElementById('lessonModal');
     dom.modalClose = document.getElementById('modalClose');
     dom.weekViewToggle = document.getElementById('weekViewToggle');

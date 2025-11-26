@@ -330,6 +330,31 @@ function findLessonInSlot(lessons, hourSlot) {
 }
 
 /**
+ * Standardize group name to normalized format
+ * @param {String} groupName - Raw group name from Bakalari
+ * @returns {String} Standardized name (e.g., "1.sk", "2.sk", "celá")
+ */
+function standardizeGroupName(groupName) {
+    if (!groupName) return '';
+
+    const lower = groupName.toLowerCase().trim();
+
+    // "celá třída"
+    if (lower.includes('celá') || lower === 'cela') {
+        return 'celá';
+    }
+
+    // Extrahuj číslo: "1. sk", "skupina 1", "1.skupina" → "1.sk"
+    const groupMatch = lower.match(/(\d+)[\.\s]*(?:skupina|sk)?|(?:skupina|sk)[\.\s]*(\d+)/);
+    if (groupMatch) {
+        const groupNum = groupMatch[1] || groupMatch[2];
+        return `${groupNum}.sk`;
+    }
+
+    return groupName;
+}
+
+/**
  * Format lesson notification
  * @param {Object} lesson - Lesson data
  * @param {String} startTime - Start time label (e.g., "8:00")
@@ -437,8 +462,29 @@ async function sendLessonReminders() {
                         lesson.type !== 'removed' && lesson.subject && lesson.subject.trim() !== ''
                     );
 
+                    // Filter by group preferences (supports multiple groups)
+                    // Backwards compatibility: migrate groupFilter to groupFilters
+                    let groupFilters = watchedTimetable.groupFilters;
+                    if (!groupFilters && watchedTimetable.groupFilter) {
+                        groupFilters = [watchedTimetable.groupFilter];
+                    } else if (!groupFilters) {
+                        groupFilters = ['all'];
+                    }
+
+                    const groupFilteredLessons = validLessons.filter(lesson => {
+                        // "Všechny skupiny" - zobraz vše
+                        if (groupFilters.includes('all')) return true;
+
+                        // Hodina bez skupiny - zobraz vždy (je pro celou třídu)
+                        if (!lesson.group) return true;
+
+                        // Porovnej standardizované skupiny
+                        const standardizedLessonGroup = standardizeGroupName(lesson.group);
+                        return groupFilters.includes(standardizedLessonGroup);
+                    });
+
                     // Filter out "Dívčí tělocvik" lessons
-                    const filteredLessons = validLessons.filter(lesson =>
+                    const filteredLessons = groupFilteredLessons.filter(lesson =>
                         !lesson.subject || !lesson.subject.toLowerCase().includes('dívčí tělocvik')
                     );
 

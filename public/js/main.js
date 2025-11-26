@@ -10,6 +10,7 @@ import { initSunData } from './suntime.js';
 import { initializeFirebase, authenticateWithFirebase } from './firebase-client.js';
 import { registerServiceWorker, initializeMessaging, initNotificationButton, showNotificationModal, closeNotificationModal, enableNotifications, disableNotificationsHandler, toggleMultiselect, filterMultiselectOptions, setupMultiselectGlobalListeners } from './notifications.js';
 import { initSettings } from './settings.js';
+import { initRefresh } from './refresh.js';
 
 /**
  * Cleanup old Service Workers (especially sw.js)
@@ -196,6 +197,7 @@ async function init() {
         initNotificationButton();
         setupMultiselectGlobalListeners();
         initSettings();
+        initRefresh();
 
         // Initialize notification modal listeners
         if (dom.notificationModalClose) {

@@ -142,7 +142,8 @@ h1 {
     color: white;
 }
 
-.theme-toggle {
+.theme-toggle,
+.refresh-btn {
     background: var(--card-bg);
     color: var(--text-main);
     border: 1px solid var(--border);
@@ -158,13 +159,32 @@ h1 {
     height: 44px;
 }
 
-.theme-toggle:hover {
+.theme-toggle:hover,
+.refresh-btn:hover {
     border-color: var(--accent);
     box-shadow: 0 4px 12px var(--shadow);
     transform: scale(1.05);
 }
 
-.theme-toggle svg {
+.refresh-btn:active {
+    transform: scale(0.95);
+}
+
+.refresh-btn.refreshing svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.theme-toggle svg,
+.refresh-btn svg {
     width: 20px;
     height: 20px;
 }

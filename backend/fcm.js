@@ -111,10 +111,19 @@ async function getUsersWatchingTimetable(timetable) {
             );
 
             if (watchedTimetable && userData.tokens && userData.tokens.length > 0) {
+                // Backwards compatibility: migrate groupFilter to groupFilters
+                let groupFilters = watchedTimetable.groupFilters;
+                if (!groupFilters && watchedTimetable.groupFilter) {
+                    groupFilters = [watchedTimetable.groupFilter];
+                } else if (!groupFilters) {
+                    groupFilters = ['all'];
+                }
+
                 watchingUsers.push({
                     userId: userDoc.id,
                     tokens: userData.tokens,
-                    notificationTypes: watchedTimetable.notificationTypes || null
+                    notificationTypes: watchedTimetable.notificationTypes || null,
+                    groupFilters: groupFilters
                 });
             }
         });
@@ -153,6 +162,54 @@ function filterChangesByPreferences(changes, notificationTypes) {
         }
 
         return isEnabled;
+    });
+}
+
+/**
+ * Standardize group name to normalized format
+ * @param {String} groupName - Raw group name from Bakalari
+ * @returns {String} Standardized name (e.g., "1.sk", "2.sk", "celá")
+ */
+function standardizeGroupName(groupName) {
+    if (!groupName) return '';
+
+    const lower = groupName.toLowerCase().trim();
+
+    // "celá třída"
+    if (lower.includes('celá') || lower === 'cela') {
+        return 'celá';
+    }
+
+    // Extrahuj číslo: "1. sk", "skupina 1", "1.skupina" → "1.sk"
+    const groupMatch = lower.match(/(\d+)[\.\s]*(?:skupina|sk)?|(?:skupina|sk)[\.\s]*(\d+)/);
+    if (groupMatch) {
+        const groupNum = groupMatch[1] || groupMatch[2];
+        return `${groupNum}.sk`;
+    }
+
+    return groupName;
+}
+
+/**
+ * Filter changes by group preferences (supports multiple groups)
+ * @param {Array} changes - Array of changes
+ * @param {Array} groupFilters - User's group filters (["all"] | ["1.sk", "2.sk"] | ["celá"])
+ * @returns {Array} Filtered changes
+ */
+function filterChangesByGroup(changes, groupFilters) {
+    // "Všechny skupiny" - zobraz vše
+    if (!groupFilters || groupFilters.includes('all')) return changes;
+
+    return changes.filter(change => {
+        // Změna nemá info o hodině - zobraz
+        if (!change.lesson) return true;
+
+        // Hodina bez skupiny - zobraz (je pro celou třídu)
+        if (!change.lesson.group) return true;
+
+        // Porovnej standardizované skupiny
+        const standardizedLessonGroup = standardizeGroupName(change.lesson.group);
+        return groupFilters.includes(standardizedLessonGroup);
     });
 }
 
@@ -204,10 +261,13 @@ async function processPendingChanges() {
             for (const user of watchingUsers) {
                 try {
                     // Filter changes based on user preferences
-                    const filteredChanges = filterChangesByPreferences(changes, user.notificationTypes);
+                    let filteredChanges = filterChangesByPreferences(changes, user.notificationTypes);
+
+                    // Filter by group (now supports multiple groups)
+                    filteredChanges = filterChangesByGroup(filteredChanges, user.groupFilters);
 
                     if (filteredChanges.length === 0) {
-                        console.log(`⏭️  No relevant changes for user ${user.userId} based on preferences`);
+                        console.log(`⏭️  No relevant changes for user ${user.userId}`);
                         continue;
                     }
 

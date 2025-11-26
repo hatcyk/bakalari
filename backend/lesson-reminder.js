@@ -277,23 +277,36 @@ async function getUsersWithLessonReminders() {
  * Get today's timetable data for a watched timetable
  * @param {Object} watchedTimetable - { type, id, scheduleType }
  * @param {Number} todayIndex - Day index (0-4)
+ * @param {Map} cache - Cache for timetable data
  * @returns {Promise<Array>} Array of lessons for today
  */
-async function getTodaysTimetableForUser(watchedTimetable, todayIndex) {
+async function getTodaysTimetableForUser(watchedTimetable, todayIndex, cache = null) {
     try {
-        const db = getFirestore();
-
         // Document key: Type_Id_ScheduleType (use Actual for current schedule)
         const docKey = `${watchedTimetable.type}_${watchedTimetable.id}_Actual`;
 
+        // Check cache first
+        if (cache && cache.has(docKey)) {
+            const cachedData = cache.get(docKey);
+            // Filter for today's lessons
+            return cachedData.filter(lesson => lesson.day === todayIndex);
+        }
+
+        const db = getFirestore();
         const timetableDoc = await db.collection('timetables').doc(docKey).get();
 
         if (!timetableDoc.exists) {
+            if (cache) cache.set(docKey, []);
             return [];
         }
 
         const timetableData = timetableDoc.data();
         const allLessons = timetableData.data || [];
+
+        // Store in cache
+        if (cache) {
+            cache.set(docKey, allLessons);
+        }
 
         // Filter for today's lessons
         const todaysLessons = allLessons.filter(lesson => lesson.day === todayIndex);
@@ -393,6 +406,14 @@ async function sendLessonReminders() {
         let totalSent = 0;
         let totalUsers = 0;
 
+        // Cache for timetable data to avoid redundant Firestore reads
+        // Map<docKey, allLessons>
+        const timetableCache = new Map();
+        let cacheHits = 0;
+        let cacheMisses = 0;
+
+        const startTime = Date.now();
+
         for (const user of users) {
             try {
                 if (user.watchedTimetables.length === 0) {
@@ -404,7 +425,11 @@ async function sendLessonReminders() {
 
                 // Check each watched timetable
                 for (const watchedTimetable of user.watchedTimetables) {
-                    const todaysLessons = await getTodaysTimetableForUser(watchedTimetable, todayIndex);
+                    // Track cache usage for debug
+                    const docKey = `${watchedTimetable.type}_${watchedTimetable.id}_Actual`;
+                    if (timetableCache.has(docKey)) cacheHits++; else cacheMisses++;
+
+                    const todaysLessons = await getTodaysTimetableForUser(watchedTimetable, todayIndex, timetableCache);
                     const lessonsInSlot = findLessonInSlot(todaysLessons, upcomingLesson.hour);
 
                     // Filter out removed/cancelled lessons
@@ -439,6 +464,10 @@ async function sendLessonReminders() {
                 console.error(`Failed to send reminder to user ${user.userId}:`, error.message);
             }
         }
+
+        const duration = Date.now() - startTime;
+        console.log(`⏱️  Processing time: ${duration}ms`);
+        console.log(`📊 Cache stats: ${cacheHits} hits, ${cacheMisses} misses (Efficiency: ${Math.round(cacheHits / (cacheHits + cacheMisses) * 100)}%)`);
 
         console.log(`\n✅ Sent ${totalSent} lesson reminders to ${totalUsers} users`);
 

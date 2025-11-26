@@ -329,6 +329,7 @@ async function prefetchAllData() {
                     const previousData = previousDoc.exists ? previousDoc.data().data : null;
 
                     // Detect changes if previous snapshot exists
+                    let hasChanges = false;
                     if (previousData && previousData.length > 0) {
                         const metadata = {
                             type: task.type,
@@ -341,6 +342,7 @@ async function prefetchAllData() {
 
                         // Store detected changes
                         if (changes.length > 0) {
+                            hasChanges = true;
                             const changeId = `${docKey}_${Date.now()}`;
                             await db.collection('changes').doc(changeId).set({
                                 timetable: metadata,
@@ -353,18 +355,32 @@ async function prefetchAllData() {
                         }
                     }
 
-                    // Store new timetable in Firestore
-                    await db.collection('timetables').doc(docKey).set({
-                        type: task.type,
-                        id: task.entity.id,
-                        name: task.entity.name,
-                        scheduleType: task.scheduleType,
-                        data: timetableData,
-                        lastUpdate: new Date().toISOString(),
-                    });
+                    // Check if data is identical to avoid unnecessary writes
+                    // We write if:
+                    // 1. It's a new document (!previousData)
+                    // 2. We detected semantic changes (hasChanges)
+                    // 3. The raw data is different (JSON comparison) - covers cases detectTimetableChanges might miss
+                    const isDataIdentical = previousData && JSON.stringify(previousData) === JSON.stringify(timetableData);
 
-                    successCount++;
-                    console.log(`${progress} ✅ ${task.type}/${task.entity.name}/${task.scheduleType} (${timetableData.length} lessons)`);
+                    if (!isDataIdentical) {
+                        // Store new timetable in Firestore
+                        await db.collection('timetables').doc(docKey).set({
+                            type: task.type,
+                            id: task.entity.id,
+                            name: task.entity.name,
+                            scheduleType: task.scheduleType,
+                            data: timetableData,
+                            lastUpdate: new Date().toISOString(),
+                        });
+                        successCount++;
+                        console.log(`${progress} ✅ ${task.type}/${task.entity.name}/${task.scheduleType} (Updated)`);
+                    } else {
+                        // Skip write, but count as success
+                        successCount++;
+                        // Update lastUpdate timestamp only occasionally or not at all? 
+                        // Let's NOT update it to save writes. The data hasn't changed.
+                        console.log(`${progress} ⏭️  ${task.type}/${task.entity.name}/${task.scheduleType} (No changes, skipped write)`);
+                    }
 
                 } catch (error) {
                     errorCount++;

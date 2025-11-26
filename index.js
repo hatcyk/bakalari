@@ -12,6 +12,7 @@ const prefetchRoutes = require('./routes/prefetch');
 const debugRoutes = require('./routes/debug');
 const statusRoutes = require('./routes/status');
 const testNotificationsRoutes = require('./routes/test-notifications');
+const cronRoutes = require('./routes/cron');
 
 // Import cron
 const { startCronJob } = require('./backend/cron');
@@ -46,6 +47,7 @@ app.use('/api', testNotificationsRoutes);
 app.use('/api/fcm', fcmRoutes);
 app.use('/api/prefetch', prefetchRoutes);
 app.use('/api/debug', debugRoutes);
+app.use('/api/cron', cronRoutes);
 
 // Get local IP address
 function getLocalIP() {

@@ -1,0 +1,54 @@
+name: Cron Jobs
+
+on:
+  schedule:
+    # Prefetch: Every 10 minutes
+    - cron: '*/10 * * * *'
+    # Lesson reminders: Every 5 minutes (GitHub Actions minimum)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  prefetch:
+    name: Prefetch Timetable Data
+    runs-on: ubuntu-latest
+    # Run only on the 10-minute schedule
+    if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Call Prefetch Endpoint
+        run: |
+          curl -X GET "${{ secrets.VERCEL_URL }}/api/cron/prefetch" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -w "\nHTTP Status: %{http_code}\n" \
+            -s -S -f || echo "Prefetch failed with status $?"
+
+  lesson-reminders:
+    name: Send Lesson Reminders
+    runs-on: ubuntu-latest
+    # Run only on the 5-minute schedule
+    if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Call Lesson Reminders Endpoint
+        run: |
+          curl -X GET "${{ secrets.VERCEL_URL }}/api/cron/lesson-reminders" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -w "\nHTTP Status: %{http_code}\n" \
+            -s -S -f || echo "Lesson reminders failed with status $?"
+
+  check-status:
+    name: Check API Status
+    runs-on: ubuntu-latest
+    # Run on both schedules to verify health
+
+    steps:
+      - name: Check API Health Status
+        run: |
+          echo "Checking API health status..."
+          curl -X GET "${{ secrets.VERCEL_URL }}/api/status" \
+            -H "Content-Type: application/json" \
+            -w "\nHTTP Status: %{http_code}\n" \
+            -s -S || echo "Status check failed"

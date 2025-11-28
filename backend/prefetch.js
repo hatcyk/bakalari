@@ -10,8 +10,10 @@ const { detectTimetableChanges } = require('./change-detector');
 
 // Configuration
 const BAKALARI_BASE_URL = 'https://mot-spsd.bakalari.cz';
-const CONCURRENT_REQUESTS = 20; // Number of parallel requests
+// Reduce concurrent requests on Vercel to avoid rate limiting/DDoS blocks
+const CONCURRENT_REQUESTS = process.env.VERCEL ? 3 : 20; // Slower on Vercel to avoid blocks
 const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = process.env.VERCEL ? 2000 : 1000; // Longer delay on Vercel
 const SCHEDULE_TYPES = ['Actual', 'Permanent', 'Next'];
 const ENTITY_TYPES = ['Class', 'Teacher', 'Room'];
 
@@ -71,7 +73,7 @@ async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
         } catch (error) {
             console.warn(`Retry ${i + 1}/${retries} for ${url}:`, error.message);
             if (i === retries - 1) throw error;
-            await sleep(1000 * (i + 1)); // Exponential backoff
+            await sleep(RETRY_DELAY_MS * (i + 1)); // Exponential backoff
         }
     }
 }

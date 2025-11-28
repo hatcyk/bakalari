@@ -204,9 +204,20 @@ function getLastPrefetchStatus() {
 
 /**
  * Manually trigger prefetch (for testing or manual refresh)
+ * Ensures Firebase is initialized before running (important for Vercel serverless)
  */
 async function triggerManualPrefetch() {
     console.log('🔧 Manual prefetch triggered');
+
+    // Initialize Firebase Admin if not already initialized
+    // This is crucial for Vercel serverless functions where startCronJob() doesn't run
+    try {
+        initializeFirebaseAdmin();
+    } catch (error) {
+        console.error('Failed to initialize Firebase Admin:', error.message);
+        throw error;
+    }
+
     return runPrefetch();
 }
 

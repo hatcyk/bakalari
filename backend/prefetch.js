@@ -17,6 +17,90 @@ const RETRY_DELAY_MS = process.env.VERCEL ? 2000 : 1000; // Longer delay on Verc
 const SCHEDULE_TYPES = ['Actual', 'Permanent', 'Next'];
 const ENTITY_TYPES = ['Class', 'Teacher', 'Room'];
 
+// Cache for session cookie (valid for the duration of prefetch run)
+let cachedSessionCookie = null;
+
+/**
+ * Login to Bakalari and get fresh session cookie
+ * @returns {Promise<string>} Cookie string for authenticated requests
+ */
+async function loginToBakalari() {
+    // Return cached cookie if available
+    if (cachedSessionCookie) {
+        return cachedSessionCookie;
+    }
+
+    const username = process.env.BAKALARI_USERNAME;
+    const password = process.env.BAKALARI_PASSWORD;
+
+    if (!username || !password) {
+        throw new Error('BAKALARI_USERNAME and BAKALARI_PASSWORD must be set in environment');
+    }
+
+    try {
+        console.log('🔐 Logging in to Bakalari...');
+
+        // Step 1: GET login page to get CSRF token and initial cookies
+        const loginPageResponse = await axios.get(`${BAKALARI_BASE_URL}/login`, {
+            maxRedirects: 0,
+            validateStatus: (status) => status < 400
+        });
+
+        // Extract cookies from login page
+        const setCookieHeaders = loginPageResponse.headers['set-cookie'] || [];
+        let cookies = {};
+        setCookieHeaders.forEach(cookieStr => {
+            const [nameValue] = cookieStr.split(';');
+            const [name, value] = nameValue.split('=');
+            cookies[name.trim()] = value;
+        });
+
+        // Parse HTML to get CSRF token
+        const $ = cheerio.load(loginPageResponse.data);
+        const csrfToken = $('input[name="__RequestVerificationToken"]').val();
+
+        // Step 2: POST login form
+        const loginData = new URLSearchParams({
+            'username': username,
+            'password': password,
+            '__RequestVerificationToken': csrfToken || ''
+        });
+
+        const loginResponse = await axios.post(`${BAKALARI_BASE_URL}/login`, loginData, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ')
+            },
+            maxRedirects: 0,
+            validateStatus: (status) => status < 400
+        });
+
+        // Extract all cookies from login response
+        const loginSetCookies = loginResponse.headers['set-cookie'] || [];
+        loginSetCookies.forEach(cookieStr => {
+            const [nameValue] = cookieStr.split(';');
+            const [name, value] = nameValue.split('=');
+            cookies[name.trim()] = value;
+        });
+
+        // Build cookie string
+        const cookieString = Object.entries(cookies)
+            .map(([name, value]) => `${name}=${value}`)
+            .join('; ');
+
+        console.log('✅ Login successful');
+
+        // Cache the cookie for this prefetch run
+        cachedSessionCookie = cookieString;
+
+        return cookieString;
+
+    } catch (error) {
+        console.error('❌ Login failed:', error.message);
+        throw new Error(`Bakalari login failed: ${error.message}`);
+    }
+}
+
 /**
  * Helper function to abbreviate teacher name from "Surname Firstname" format
  */
@@ -84,10 +168,8 @@ async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
  */
 async function fetchDefinitions() {
     try {
-        const cookie = process.env.BAKALARI_COOKIE;
-        if (!cookie) {
-            throw new Error('BAKALARI_COOKIE not found in environment');
-        }
+        // Get fresh login cookie
+        const cookie = await loginToBakalari();
 
         const url = `${BAKALARI_BASE_URL}/Timetable/Public/Actual/Class/ZL`;
         const response = await axios.get(url, {
@@ -142,10 +224,8 @@ async function fetchDefinitions() {
  */
 async function fetchTimetable(type, id, scheduleType, date = null) {
     try {
-        const cookie = process.env.BAKALARI_COOKIE;
-        if (!cookie) {
-            throw new Error('BAKALARI_COOKIE not found in environment');
-        }
+        // Get fresh login cookie (cached during prefetch run)
+        const cookie = await loginToBakalari();
 
         let url = `${BAKALARI_BASE_URL}/Timetable/Public/${scheduleType}/${type}/${id}`;
         if (date) {
@@ -248,6 +328,9 @@ async function fetchTimetable(type, id, scheduleType, date = null) {
 async function prefetchAllData() {
     console.log('\n🚀 Starting prefetch of all timetable data...');
     const startTime = Date.now();
+
+    // Reset cookie cache for fresh login
+    cachedSessionCookie = null;
 
     const db = getFirestore();
     let totalRequests = 0;

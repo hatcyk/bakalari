@@ -226,8 +226,48 @@ export async function loadNotificationPreferences() {
 
         const data = await response.json();
 
+        // Migrate watchedTimetables: ensure all have groupFilters and notificationTypes
+        const watchedTimetables = data.watchedTimetables || [];
+        let needsSave = false;
+
+        watchedTimetables.forEach(timetable => {
+            // Migrate groupFilters
+            if (!timetable.groupFilters) {
+                // Migrate from old single groupFilter to array
+                const oldFilter = timetable.groupFilter || 'all';
+                timetable.groupFilters = [oldFilter];
+                needsSave = true;
+            }
+
+            // Ensure notificationTypes exist
+            if (!timetable.notificationTypes) {
+                timetable.notificationTypes = {
+                    changes: {
+                        lesson_removed: true,
+                        substitution: true,
+                        room_change: true,
+                        lesson_added: false,
+                        subject_change: false
+                    },
+                    reminders: {
+                        next_lesson_room: false,
+                        next_lesson_teacher: false,
+                        next_lesson_subject: false
+                    }
+                };
+                needsSave = true;
+            }
+        });
+
+        // Save migrated data back to server
+        if (needsSave) {
+            debug.log('⚙️ Migrating old preferences format...');
+            await saveWatchedTimetables(watchedTimetables);
+            debug.log('✅ Migration complete');
+        }
+
         // Update state
-        updateState('watchedTimetables', data.watchedTimetables || []);
+        updateState('watchedTimetables', watchedTimetables);
         updateState('notificationsEnabled', data.hasTokens || false);
         updateState('globalNotificationPreferences', data.notificationTypes || {
             systemStatus: false

@@ -104,7 +104,8 @@ async function handleMultiselectChange(event) {
                     id,
                     name,
                     scheduleType,
-                    notificationTypes: getDefaultPreferences()
+                    notificationTypes: getDefaultPreferences(),
+                    groupFilters: ['all']
                 });
             }
         });

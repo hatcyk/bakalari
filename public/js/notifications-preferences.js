@@ -116,6 +116,17 @@ function createTimetablePreferenceItem(timetable, index) {
         timetable.notificationTypes = getDefaultPreferences();
     }
 
+    // Migrate groupFilters if missing (safety net)
+    if (!timetable.groupFilters) {
+        const oldFilter = timetable.groupFilter || 'all';
+        timetable.groupFilters = [oldFilter];
+
+        // Immediately save to persist migration
+        saveWatchedTimetables(state.watchedTimetables).catch(err => {
+            console.error('Failed to save migrated groupFilters:', err);
+        });
+    }
+
     // Header
     const header = document.createElement('div');
     header.className = 'timetable-preference-header';

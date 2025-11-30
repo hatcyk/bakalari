@@ -58,11 +58,18 @@ const headers = {
 
 // Axios config for reliability
 const axiosConfig = {
-    timeout: 30000, // 30 second timeout
+    timeout: 60000, // 60 second timeout (increased for slow Bakalari responses)
     headers,
     // Disable keep-alive in serverless environments
-    httpAgent: process.env.VERCEL ? new (require('http').Agent)({ keepAlive: false }) : undefined,
-    httpsAgent: process.env.VERCEL ? new (require('https').Agent)({ keepAlive: false }) : undefined,
+    httpAgent: process.env.VERCEL ? new (require('http').Agent)({
+        keepAlive: false,
+        timeout: 60000
+    }) : undefined,
+    httpsAgent: process.env.VERCEL ? new (require('https').Agent)({
+        keepAlive: false,
+        timeout: 60000,
+        rejectUnauthorized: true
+    }) : undefined,
 };
 
 // Get timetable data

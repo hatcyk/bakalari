@@ -16,13 +16,25 @@ jobs:
     if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
 
     steps:
-      - name: Call Prefetch Endpoint
-        run: |
-          curl -X GET "${{ secrets.VERCEL_URL }}/api/cron/prefetch" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" \
-            -w "\nHTTP Status: %{http_code}\n" \
-            -s -S -f || echo "Prefetch failed with status $?"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run prefetch script
+        env:
+          BAKALARI_USERNAME: ${{ secrets.BAKALARI_USERNAME }}
+          BAKALARI_PASSWORD: ${{ secrets.BAKALARI_PASSWORD }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VERCEL: 'true'
+        run: node scripts/run-prefetch.js
 
   lesson-reminders:
     name: Send Lesson Reminders

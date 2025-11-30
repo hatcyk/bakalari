@@ -19,13 +19,23 @@ const ENTITY_TYPES = ['Class', 'Teacher', 'Room'];
 
 // Axios configuration for serverless environments
 const axiosConfig = {
-    timeout: 30000, // 30 second timeout
+    timeout: 60000, // 60 second timeout (increased for slow Bakalari responses)
     headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'cs,en;q=0.9',
+        'Connection': 'close' // Force close connections in serverless
     },
     // Disable keep-alive in serverless environments
-    httpAgent: process.env.VERCEL ? new (require('http').Agent)({ keepAlive: false }) : undefined,
-    httpsAgent: process.env.VERCEL ? new (require('https').Agent)({ keepAlive: false }) : undefined,
+    httpAgent: process.env.VERCEL ? new (require('http').Agent)({
+        keepAlive: false,
+        timeout: 60000
+    }) : undefined,
+    httpsAgent: process.env.VERCEL ? new (require('https').Agent)({
+        keepAlive: false,
+        timeout: 60000,
+        rejectUnauthorized: true
+    }) : undefined,
 };
 
 // Cache for session cookie (valid for the duration of prefetch run)

@@ -12,9 +12,9 @@ const router = express.Router();
  * Get system health status
  * Returns whether Bakalari API is healthy based on last prefetch
  */
-router.get('/status', (_req, res) => {
+router.get('/status', async (_req, res) => {
     try {
-        const status = getLastPrefetchStatus();
+        const status = await getLastPrefetchStatus();
         res.json(status);
     } catch (error) {
         res.status(500).json({

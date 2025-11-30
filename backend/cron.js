@@ -5,7 +5,7 @@
 
 const cron = require('node-cron');
 const { prefetchAllData } = require('./prefetch');
-const { initializeFirebaseAdmin } = require('./firebase-admin-init');
+const { initializeFirebaseAdmin, getFirestore } = require('./firebase-admin-init');
 const { sendLessonReminders } = require('./lesson-reminder');
 const { sendApiOutageNotification, sendApiRestoredNotification } = require('./fcm');
 
@@ -13,9 +13,9 @@ let cronJob = null;
 let lessonReminderCron = null;
 let isRunning = false;
 
-// Track last prefetch status
+// Track last prefetch status (in-memory fallback)
 let lastPrefetchStatus = {
-    isHealthy: false, // Start as unhealthy until first successful prefetch
+    isHealthy: false,
     lastRun: null,
     lastSuccess: null,
     definitionsCount: 0,
@@ -26,6 +26,52 @@ let lastPrefetchStatus = {
 
 // Track previous health status for change detection
 let previousHealthStatus = null;
+
+/**
+ * Save prefetch status to Firestore (for serverless persistence)
+ */
+async function savePrefetchStatus(status) {
+    try {
+        const db = getFirestore();
+        await db.collection('system').doc('prefetchStatus').set({
+            ...status,
+            lastRun: status.lastRun ? status.lastRun.toISOString() : null,
+            lastSuccess: status.lastSuccess ? status.lastSuccess.toISOString() : null,
+            updatedAt: new Date().toISOString()
+        });
+        console.log('✅ Prefetch status saved to Firestore');
+    } catch (error) {
+        console.error('Failed to save prefetch status to Firestore:', error.message);
+    }
+}
+
+/**
+ * Load prefetch status from Firestore (for serverless)
+ */
+async function loadPrefetchStatus() {
+    try {
+        const db = getFirestore();
+        const doc = await db.collection('system').doc('prefetchStatus').get();
+
+        if (!doc.exists) {
+            return lastPrefetchStatus; // Return default if not found
+        }
+
+        const data = doc.data();
+        return {
+            isHealthy: data.isHealthy,
+            lastRun: data.lastRun ? new Date(data.lastRun) : null,
+            lastSuccess: data.lastSuccess ? new Date(data.lastSuccess) : null,
+            definitionsCount: data.definitionsCount || 0,
+            successCount: data.successCount || 0,
+            totalRequests: data.totalRequests || 0,
+            error: data.error || null
+        };
+    } catch (error) {
+        console.error('Failed to load prefetch status from Firestore:', error.message);
+        return lastPrefetchStatus; // Return in-memory fallback
+    }
+}
 
 /**
  * Run prefetch with error handling and status tracking
@@ -63,6 +109,9 @@ async function runPrefetch() {
             error: result.definitionsCount === 0 ? 'No definitions fetched - API may be down or cookie expired' : null
         };
 
+        // Save status to Firestore (for serverless persistence)
+        await savePrefetchStatus(lastPrefetchStatus);
+
         // Detect API status change and send notifications
         await detectAndNotifyStatusChange(isHealthy);
 
@@ -80,6 +129,9 @@ async function runPrefetch() {
             totalRequests: 0,
             error: error.message
         };
+
+        // Save status to Firestore (for serverless persistence)
+        await savePrefetchStatus(lastPrefetchStatus);
 
         // Detect API status change and send notifications
         await detectAndNotifyStatusChange(false);
@@ -194,12 +246,23 @@ function getCronStatus() {
 
 /**
  * Get last prefetch status (for API health check)
+ * Loads from Firestore for serverless compatibility
  */
-function getLastPrefetchStatus() {
-    return {
-        ...lastPrefetchStatus,
-        prefetchInProgress: isRunning
-    };
+async function getLastPrefetchStatus() {
+    try {
+        const status = await loadPrefetchStatus();
+        return {
+            ...status,
+            prefetchInProgress: isRunning
+        };
+    } catch (error) {
+        console.error('Failed to get prefetch status:', error.message);
+        // Fallback to in-memory status
+        return {
+            ...lastPrefetchStatus,
+            prefetchInProgress: isRunning
+        };
+    }
 }
 
 /**

@@ -6,11 +6,13 @@
  */
 
 require('dotenv').config();
-const { initializeFirebaseAdmin } = require('../backend/firebase-admin-init');
+const { initializeFirebaseAdmin, getFirestore } = require('../backend/firebase-admin-init');
 const { prefetchAllData } = require('../backend/prefetch');
 
 async function main() {
     console.log('🚀 Starting prefetch from GitHub Actions...\n');
+
+    const startTime = new Date();
 
     try {
         // Initialize Firebase Admin
@@ -20,6 +22,23 @@ async function main() {
 
         // Run prefetch
         const result = await prefetchAllData();
+
+        // Update status in Firestore (for /api/status endpoint)
+        const db = getFirestore();
+        const isHealthy = result.definitionsCount > 0;
+
+        await db.collection('system').doc('prefetchStatus').set({
+            isHealthy: isHealthy,
+            lastRun: startTime.toISOString(),
+            lastSuccess: startTime.toISOString(),
+            definitionsCount: result.definitionsCount || 0,
+            successCount: result.successCount,
+            totalRequests: result.totalRequests,
+            error: null,
+            updatedAt: new Date().toISOString()
+        });
+
+        console.log('✅ Status updated in Firestore');
 
         // Log results
         console.log('\n' + '='.repeat(60));
@@ -42,6 +61,24 @@ async function main() {
         console.error('Error:', error.message);
         console.error('Stack:', error.stack);
         console.error('='.repeat(60) + '\n');
+
+        // Update status in Firestore with error
+        try {
+            const db = getFirestore();
+            await db.collection('system').doc('prefetchStatus').set({
+                isHealthy: false,
+                lastRun: startTime.toISOString(),
+                lastSuccess: null,
+                definitionsCount: 0,
+                successCount: 0,
+                totalRequests: 0,
+                error: error.message,
+                updatedAt: new Date().toISOString()
+            });
+            console.log('❌ Error status saved to Firestore');
+        } catch (fsError) {
+            console.error('Failed to save error status to Firestore:', fsError.message);
+        }
 
         // Exit with error
         process.exit(1);

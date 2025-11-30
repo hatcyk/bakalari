@@ -56,6 +56,15 @@ const headers = {
     'Cookie': MOJE_COOKIE
 };
 
+// Axios config for reliability
+const axiosConfig = {
+    timeout: 30000, // 30 second timeout
+    headers,
+    // Disable keep-alive in serverless environments
+    httpAgent: process.env.VERCEL ? new (require('http').Agent)({ keepAlive: false }) : undefined,
+    httpsAgent: process.env.VERCEL ? new (require('https').Agent)({ keepAlive: false }) : undefined,
+};
+
 // Get timetable data
 router.get('/timetable', async (req, res) => {
     const { type, id, schedule, date } = req.query;
@@ -75,7 +84,7 @@ router.get('/timetable', async (req, res) => {
     console.log(`[API] Fetching timetable: ${url}`);
 
     try {
-        const response = await axios.get(url, { headers });
+        const response = await axios.get(url, axiosConfig);
         const $ = cheerio.load(response.data);
         const timetable = [];
 
@@ -168,7 +177,7 @@ router.get('/timetable', async (req, res) => {
 // Get definitions (classes, teachers, rooms)
 router.get('/definitions', async (req, res) => {
     try {
-        const response = await axios.get(`${BASE_URL_TEMPLATE}/Actual/Class/ZL`, { headers });
+        const response = await axios.get(`${BASE_URL_TEMPLATE}/Actual/Class/ZL`, axiosConfig);
         const $ = cheerio.load(response.data);
         const data = { classes: [], teachers: [], rooms: [] };
 

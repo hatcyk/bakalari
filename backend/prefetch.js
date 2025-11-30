@@ -17,6 +17,17 @@ const RETRY_DELAY_MS = process.env.VERCEL ? 2000 : 1000; // Longer delay on Verc
 const SCHEDULE_TYPES = ['Actual', 'Permanent', 'Next'];
 const ENTITY_TYPES = ['Class', 'Teacher', 'Room'];
 
+// Axios configuration for serverless environments
+const axiosConfig = {
+    timeout: 30000, // 30 second timeout
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    },
+    // Disable keep-alive in serverless environments
+    httpAgent: process.env.VERCEL ? new (require('http').Agent)({ keepAlive: false }) : undefined,
+    httpsAgent: process.env.VERCEL ? new (require('https').Agent)({ keepAlive: false }) : undefined,
+};
+
 // Cache for session cookie (valid for the duration of prefetch run)
 let cachedSessionCookie = null;
 
@@ -24,7 +35,7 @@ let cachedSessionCookie = null;
  * Login to Bakalari and get fresh session cookie
  * @returns {Promise<string>} Cookie string for authenticated requests
  */
-async function loginToBakalari() {
+async function loginToBakalari(retries = MAX_RETRIES) {
     // Return cached cookie if available
     if (cachedSessionCookie) {
         return cachedSessionCookie;
@@ -37,67 +48,83 @@ async function loginToBakalari() {
         throw new Error('BAKALARI_USERNAME and BAKALARI_PASSWORD must be set in environment');
     }
 
-    try {
-        console.log('🔐 Logging in to Bakalari...');
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            console.log(`🔐 Logging in to Bakalari... (attempt ${attempt}/${retries})`);
 
-        // Step 1: GET login page to get CSRF token and initial cookies
-        const loginPageResponse = await axios.get(`${BAKALARI_BASE_URL}/login`, {
-            maxRedirects: 0,
-            validateStatus: (status) => status < 400
-        });
+            // Step 1: GET login page to get CSRF token and initial cookies
+            const loginPageResponse = await axios.get(`${BAKALARI_BASE_URL}/login`, {
+                ...axiosConfig,
+                maxRedirects: 0,
+                validateStatus: (status) => status < 400
+            });
 
-        // Extract cookies from login page
-        const setCookieHeaders = loginPageResponse.headers['set-cookie'] || [];
-        let cookies = {};
-        setCookieHeaders.forEach(cookieStr => {
-            const [nameValue] = cookieStr.split(';');
-            const [name, value] = nameValue.split('=');
-            cookies[name.trim()] = value;
-        });
+            // Extract cookies from login page
+            const setCookieHeaders = loginPageResponse.headers['set-cookie'] || [];
+            let cookies = {};
+            setCookieHeaders.forEach(cookieStr => {
+                const [nameValue] = cookieStr.split(';');
+                const [name, value] = nameValue.split('=');
+                cookies[name.trim()] = value;
+            });
 
-        // Parse HTML to get CSRF token
-        const $ = cheerio.load(loginPageResponse.data);
-        const csrfToken = $('input[name="__RequestVerificationToken"]').val();
+            // Parse HTML to get CSRF token
+            const $ = cheerio.load(loginPageResponse.data);
+            const csrfToken = $('input[name="__RequestVerificationToken"]').val();
 
-        // Step 2: POST login form
-        const loginData = new URLSearchParams({
-            'username': username,
-            'password': password,
-            '__RequestVerificationToken': csrfToken || ''
-        });
+            // Step 2: POST login form
+            const loginData = new URLSearchParams({
+                'username': username,
+                'password': password,
+                '__RequestVerificationToken': csrfToken || ''
+            });
 
-        const loginResponse = await axios.post(`${BAKALARI_BASE_URL}/login`, loginData, {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ')
-            },
-            maxRedirects: 0,
-            validateStatus: (status) => status < 400
-        });
+            const loginResponse = await axios.post(`${BAKALARI_BASE_URL}/login`, loginData, {
+                ...axiosConfig,
+                headers: {
+                    ...axiosConfig.headers,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ')
+                },
+                maxRedirects: 0,
+                validateStatus: (status) => status < 400
+            });
 
-        // Extract all cookies from login response
-        const loginSetCookies = loginResponse.headers['set-cookie'] || [];
-        loginSetCookies.forEach(cookieStr => {
-            const [nameValue] = cookieStr.split(';');
-            const [name, value] = nameValue.split('=');
-            cookies[name.trim()] = value;
-        });
+            // Extract all cookies from login response
+            const loginSetCookies = loginResponse.headers['set-cookie'] || [];
+            loginSetCookies.forEach(cookieStr => {
+                const [nameValue] = cookieStr.split(';');
+                const [name, value] = nameValue.split('=');
+                cookies[name.trim()] = value;
+            });
 
-        // Build cookie string
-        const cookieString = Object.entries(cookies)
-            .map(([name, value]) => `${name}=${value}`)
-            .join('; ');
+            // Build cookie string
+            const cookieString = Object.entries(cookies)
+                .map(([name, value]) => `${name}=${value}`)
+                .join('; ');
 
-        console.log('✅ Login successful');
+            console.log('✅ Login successful');
 
-        // Cache the cookie for this prefetch run
-        cachedSessionCookie = cookieString;
+            // Cache the cookie for this prefetch run
+            cachedSessionCookie = cookieString;
 
-        return cookieString;
+            return cookieString;
 
-    } catch (error) {
-        console.error('❌ Login failed:', error.message);
-        throw new Error(`Bakalari login failed: ${error.message}`);
+        } catch (error) {
+            const isLastAttempt = attempt === retries;
+            const errorMsg = error.code === 'ECONNRESET' ? 'Connection reset by server' : error.message;
+
+            console.error(`❌ Login attempt ${attempt}/${retries} failed: ${errorMsg}`);
+
+            if (isLastAttempt) {
+                throw new Error(`Bakalari login failed after ${retries} attempts: ${error.message}`);
+            }
+
+            // Wait before retry with exponential backoff
+            const delay = RETRY_DELAY_MS * attempt;
+            console.log(`⏳ Waiting ${delay}ms before retry...`);
+            await sleep(delay);
+        }
     }
 }
 
@@ -173,7 +200,11 @@ async function fetchDefinitions() {
 
         const url = `${BAKALARI_BASE_URL}/Timetable/Public/Actual/Class/ZL`;
         const response = await axios.get(url, {
-            headers: { Cookie: cookie },
+            ...axiosConfig,
+            headers: {
+                ...axiosConfig.headers,
+                Cookie: cookie
+            },
         });
 
         const $ = cheerio.load(response.data);
@@ -233,7 +264,11 @@ async function fetchTimetable(type, id, scheduleType, date = null) {
         }
 
         const response = await axios.get(url, {
-            headers: { Cookie: cookie },
+            ...axiosConfig,
+            headers: {
+                ...axiosConfig.headers,
+                Cookie: cookie
+            },
         });
 
         const $ = cheerio.load(response.data);

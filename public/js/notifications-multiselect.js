@@ -105,7 +105,7 @@ async function handleMultiselectChange(event) {
                     name,
                     scheduleType,
                     notificationTypes: getDefaultPreferences(),
-                    groupFilters: ['all']
+                    groupFilters: []
                 });
             }
         });
@@ -217,8 +217,11 @@ function openMultiselect() {
     dom.multiselectTrigger.classList.add('active');
     dom.multiselectMenu.classList.add('active');
 
-    // Position dropdown using fixed positioning
-    positionDropdown();
+    // Clear any inline styles that might override CSS
+    dom.multiselectMenu.style.width = '';
+    dom.multiselectMenu.style.left = '';
+    dom.multiselectMenu.style.top = '';
+    dom.multiselectMenu.style.bottom = '';
 
     // Focus search input
     if (dom.multiselectSearch) {
@@ -288,18 +291,7 @@ export function setupMultiselectGlobalListeners() {
         }
     });
 
-    // Reposition on scroll/resize
-    window.addEventListener('scroll', () => {
-        if (dom.multiselectMenu && dom.multiselectMenu.classList.contains('active')) {
-            positionDropdown();
-        }
-    }, true);
-
-    window.addEventListener('resize', () => {
-        if (dom.multiselectMenu && dom.multiselectMenu.classList.contains('active')) {
-            positionDropdown();
-        }
-    });
+    // No longer need scroll/resize listeners since we use CSS positioning
 }
 
 /**

@@ -356,12 +356,13 @@ function standardizeGroupName(groupName) {
 
 /**
  * Format lesson notification
- * @param {Object} lesson - Lesson data
+ * @param {Object} lesson - Next lesson data
+ * @param {Object} currentLesson - Current lesson data (optional, for 'next' type)
  * @param {String} startTime - Start time label (e.g., "8:00")
  * @param {String} reminderType - 'next' or 'first'
- * @returns {Object} { title, body, data }
+ * @returns {Object|null} { title, body, data } or null to skip notification
  */
-function formatLessonNotification(lesson, startTime, reminderType = 'next') {
+function formatLessonNotification(lesson, currentLesson, startTime, reminderType = 'next') {
     const subjectAbbr = abbreviateSubject(lesson.subject);
     const room = lesson.room || '?';
     const teacher = lesson.teacher || '?';
@@ -371,7 +372,32 @@ function formatLessonNotification(lesson, startTime, reminderType = 'next') {
     if (reminderType === 'first') {
         title = `Za 10 minut: ${subjectAbbr}`;
     } else {
-        title = `Příští hodina: ${subjectAbbr}`;
+        // Pro "next" typ - porovnej s aktuální hodinou
+        if (currentLesson) {
+            const isSameSubject = currentLesson.subject === lesson.subject;
+
+            if (isSameSubject) {
+                // Stejný předmět - zkontroluj, zda se změnila místnost nebo učitel
+                const roomChanged = currentLesson.room !== lesson.room;
+                const teacherChanged = currentLesson.teacher !== lesson.teacher;
+
+                if (roomChanged || teacherChanged) {
+                    // Změna místnosti nebo učitele - upozorni
+                    title = `Další ${subjectAbbr}: ${room}`;
+                    console.log(`ℹ️  Same subject but different room/teacher - sending notification`);
+                } else {
+                    // Úplně stejná hodina pokračuje - skipni notifikaci
+                    console.log(`⏭️  Same lesson continues (${lesson.subject}) - skipping notification`);
+                    return null;
+                }
+            } else {
+                // Jiný předmět
+                title = `Příští hodina: ${subjectAbbr}`;
+            }
+        } else {
+            // Nemáme info o aktuální hodině - použij výchozí text
+            title = `Příští hodina: ${subjectAbbr}`;
+        }
     }
 
     // Body: "202 • MAT • M. Velingerová"
@@ -472,15 +498,36 @@ async function sendLessonReminders() {
                     }
 
                     const groupFilteredLessons = validLessons.filter(lesson => {
+                        // Debug logging pro diagnostiku
+                        const debugInfo = {
+                            subject: lesson.subject,
+                            group: lesson.group,
+                            groupType: typeof lesson.group,
+                            groupFilters: groupFilters
+                        };
+
                         // "Všechny skupiny" - zobraz vše
-                        if (groupFilters.includes('all')) return true;
+                        if (groupFilters.includes('all')) {
+                            console.log(`[FILTER] ✅ PASS (all groups): ${lesson.subject}`, debugInfo);
+                            return true;
+                        }
 
                         // Hodina bez skupiny - zobraz vždy (je pro celou třídu)
-                        if (!lesson.group) return true;
+                        // Robustní kontrola pro různé případy: null, undefined, prázdný string
+                        const hasNoGroup = !lesson.group ||
+                                          (typeof lesson.group === 'string' && lesson.group.trim() === '');
+
+                        if (hasNoGroup) {
+                            console.log(`[FILTER] ✅ PASS (no group - whole class): ${lesson.subject}`, debugInfo);
+                            return true;
+                        }
 
                         // Porovnej standardizované skupiny
                         const standardizedLessonGroup = standardizeGroupName(lesson.group);
-                        return groupFilters.includes(standardizedLessonGroup);
+                        const passes = groupFilters.includes(standardizedLessonGroup);
+
+                        console.log(`[FILTER] ${passes ? '✅ PASS' : '❌ FAIL'} (group match): ${lesson.subject}, standardized: "${standardizedLessonGroup}"`, debugInfo);
+                        return passes;
                     });
 
                     // Filter out "Dívčí tělocvik" lessons
@@ -497,7 +544,35 @@ async function sendLessonReminders() {
                 if (userHasLesson && userLessons.length > 0) {
                     // Send notification for first lesson (if multiple, they're usually the same subject)
                     const lesson = userLessons[0];
-                    const notification = formatLessonNotification(lesson, upcomingLesson.label, upcomingLesson.type);
+
+                    // Pokud je to "next" reminder (5 min před koncem hodiny), získej aktuální hodinu
+                    let currentLessonData = null;
+                    if (upcomingLesson.type === 'next' && upcomingLesson.hour > 0) {
+                        // Aktuální hodina je o 1 menší než upcoming
+                        const currentHour = upcomingLesson.hour - 1;
+                        const currentLessonsInSlot = await getTodaysTimetableForUser(
+                            user.watchedTimetables[0], // Používáme první watched timetable
+                            todayIndex,
+                            timetableCache
+                        );
+                        const currentLessons = findLessonInSlot(currentLessonsInSlot, currentHour);
+                        if (currentLessons.length > 0) {
+                            currentLessonData = currentLessons[0];
+                        }
+                    }
+
+                    const notification = formatLessonNotification(
+                        lesson,
+                        currentLessonData,
+                        upcomingLesson.label,
+                        upcomingLesson.type
+                    );
+
+                    // Skip pokud notification je null (stejná hodina pokračuje)
+                    if (!notification) {
+                        console.log(`⏭️  Skipped notification for user ${user.userId} - same lesson continues`);
+                        continue;
+                    }
 
                     const result = await sendNotificationToTokens(user.tokens, notification);
                     totalSent += result.successCount;

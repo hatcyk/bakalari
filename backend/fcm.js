@@ -202,14 +202,27 @@ function filterChangesByGroup(changes, groupFilters) {
 
     return changes.filter(change => {
         // Změna nemá info o hodině - zobraz
-        if (!change.lesson) return true;
+        if (!change.lesson) {
+            console.log(`[FILTER CHANGE] ✅ PASS (no lesson info):`, change.type);
+            return true;
+        }
 
-        // Hodina bez skupiny - zobraz (je pro celou třídu)
-        if (!change.lesson.group) return true;
+        // Hodina bez skupiny - zobraz vždy (je pro celou třídu)
+        // Robustní kontrola pro různé případy: null, undefined, prázdný string
+        const hasNoGroup = !change.lesson.group ||
+                          (typeof change.lesson.group === 'string' && change.lesson.group.trim() === '');
+
+        if (hasNoGroup) {
+            console.log(`[FILTER CHANGE] ✅ PASS (no group - whole class): ${change.lesson.subject || change.type}`);
+            return true;
+        }
 
         // Porovnej standardizované skupiny
         const standardizedLessonGroup = standardizeGroupName(change.lesson.group);
-        return groupFilters.includes(standardizedLessonGroup);
+        const passes = groupFilters.includes(standardizedLessonGroup);
+
+        console.log(`[FILTER CHANGE] ${passes ? '✅ PASS' : '❌ FAIL'} (group match): ${change.lesson.subject || change.type}, group: "${change.lesson.group}" → "${standardizedLessonGroup}"`);
+        return passes;
     });
 }
 

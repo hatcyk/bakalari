@@ -324,6 +324,13 @@ async function getAvailableGroups(watchedTimetable) {
             }
         });
 
+        // Pokud jsme nenašli žádné skupiny kromě 'all', přidej výchozí 'celá'
+        // (uživatel může mít rozvrh bez skupin)
+        if (groupsSet.size === 1) {
+            console.warn('   ⚠️ No groups found in lessons besides "all"');
+            groupsSet.add('celá'); // Celá třída jako výchozí možnost
+        }
+
         // Seřaď: all → celá → 1.sk → 2.sk ...
         const sorted = Array.from(groupsSet).sort((a, b) => {
             if (a === 'all') return -1;
@@ -358,6 +365,16 @@ async function populateGroupFilter(multiselectElement, watchedTimetable, index) 
     const optionsContainer = multiselectElement.querySelector('.multiselect-options');
     const label = multiselectElement.querySelector('.multiselect-label');
 
+    // Ověř, že všechny DOM elementy existují
+    if (!optionsContainer) {
+        console.error('❌ optionsContainer not found in multiselect element!');
+        return;
+    }
+    if (!trigger || !menu || !label) {
+        console.error('❌ Missing required multiselect elements (trigger/menu/label)!');
+        return;
+    }
+
     // Initialize groupFilters if it doesn't exist (backwards compatibility)
     if (!watchedTimetable.groupFilters) {
         // Migrate from old single groupFilter to array
@@ -372,6 +389,7 @@ async function populateGroupFilter(multiselectElement, watchedTimetable, index) 
     // Render checkbox options
     optionsContainer.innerHTML = '';
     groups.forEach(group => {
+        try {
         const option = document.createElement('div');
         option.className = 'multiselect-option';
 
@@ -403,6 +421,9 @@ async function populateGroupFilter(multiselectElement, watchedTimetable, index) 
 
         optionsContainer.appendChild(option);
         console.log(`   Added option: value="${group}", checked=${checkbox.checked}`);
+        } catch (error) {
+            console.error(`❌ Failed to render option for group "${group}":`, error);
+        }
     });
 
     // Update label based on selection

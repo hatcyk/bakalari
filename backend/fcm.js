@@ -193,12 +193,12 @@ function standardizeGroupName(groupName) {
 /**
  * Filter changes by group preferences (supports multiple groups)
  * @param {Array} changes - Array of changes
- * @param {Array} groupFilters - User's group filters (["all"] | ["1.sk", "2.sk"] | ["celá"])
+ * @param {Array} groupFilters - User's group filters ([] = all groups | ["1.sk", "2.sk"] = specific groups)
  * @returns {Array} Filtered changes
  */
 function filterChangesByGroup(changes, groupFilters) {
-    // "Všechny skupiny" - zobraz vše
-    if (!groupFilters || groupFilters.includes('all')) return changes;
+    // Empty array or "all" - zobraz vše
+    if (!groupFilters || groupFilters.length === 0 || groupFilters.includes('all')) return changes;
 
     return changes.filter(change => {
         // Změna nemá info o hodině - zobraz

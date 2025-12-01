@@ -140,6 +140,8 @@ function getNextLessonReminder() {
     const currentMinute = now.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
+    console.log(`\n⏰ [TIMING] Current time: ${currentHour}:${currentMinute.toString().padStart(2, '0')} (${currentTimeInMinutes} minutes)`);
+
     // Find if we're currently in any lesson
     let currentLesson = null;
     for (const lesson of lessonTimes) {
@@ -150,8 +152,13 @@ function getNextLessonReminder() {
 
         if (currentTimeInMinutes >= startInMinutes && currentTimeInMinutes < endInMinutes) {
             currentLesson = lesson;
+            console.log(`   Currently IN lesson: Hour ${lesson.hour} (${lesson.label})`);
             break;
         }
+    }
+
+    if (!currentLesson) {
+        console.log(`   NOT in any lesson currently (between lessons or outside school hours)`);
     }
 
     // Case 1: We're in a lesson - check if we're 5 minutes before it ends
@@ -160,18 +167,25 @@ function getNextLessonReminder() {
         const endTimeInMinutes = endH * 60 + endM;
         const minutesUntilEnd = endTimeInMinutes - currentTimeInMinutes;
 
+        console.log(`   Minutes until current lesson ends: ${minutesUntilEnd} (trigger window: 4-6 minutes)`);
+
         // If exactly 5 minutes before end (or within 1 minute window for cron tolerance)
         if (minutesUntilEnd >= 4 && minutesUntilEnd <= 6) {
             // Find next lesson slot
             const nextLessonSlot = lessonTimes.find(l => l.hour === currentLesson.hour + 1);
             if (nextLessonSlot) {
+                console.log(`   ✅ TRIGGER: Sending "next lesson" reminder for hour ${nextLessonSlot.hour} (${nextLessonSlot.label})`);
                 return {
                     hour: nextLessonSlot.hour,
                     startTime: nextLessonSlot.start,
                     label: nextLessonSlot.label,
                     type: 'next'
                 };
+            } else {
+                console.log(`   ⚠️ No next lesson slot found after hour ${currentLesson.hour}`);
             }
+        } else {
+            console.log(`   ❌ Not in trigger window (need 4-6 minutes before end)`);
         }
     }
 
@@ -181,8 +195,11 @@ function getNextLessonReminder() {
     const firstStartInMinutes = firstStartH * 60 + firstStartM;
     const minutesUntilFirstLesson = firstStartInMinutes - currentTimeInMinutes;
 
+    console.log(`   Minutes until first lesson (${firstLesson.label}): ${minutesUntilFirstLesson} (trigger window: 9-11 minutes)`);
+
     // If exactly 10 minutes before first lesson (or within 1 minute window)
     if (minutesUntilFirstLesson >= 9 && minutesUntilFirstLesson <= 11) {
+        console.log(`   ✅ TRIGGER: Sending "first lesson" reminder for hour ${firstLesson.hour} (${firstLesson.label})`);
         return {
             hour: firstLesson.hour,
             startTime: firstLesson.start,
@@ -191,6 +208,7 @@ function getNextLessonReminder() {
         };
     }
 
+    console.log(`   ❌ No notification to send at this time`);
     return null;
 }
 
@@ -494,7 +512,7 @@ async function sendLessonReminders() {
                     if (!groupFilters && watchedTimetable.groupFilter) {
                         groupFilters = [watchedTimetable.groupFilter];
                     } else if (!groupFilters) {
-                        groupFilters = ['all'];
+                        groupFilters = [];
                     }
 
                     const groupFilteredLessons = validLessons.filter(lesson => {
@@ -506,8 +524,8 @@ async function sendLessonReminders() {
                             groupFilters: groupFilters
                         };
 
-                        // "Všechny skupiny" - zobraz vše
-                        if (groupFilters.includes('all')) {
+                        // Empty array or "all" - zobraz vše
+                        if (groupFilters.length === 0 || groupFilters.includes('all')) {
                             console.log(`[FILTER] ✅ PASS (all groups): ${lesson.subject}`, debugInfo);
                             return true;
                         }

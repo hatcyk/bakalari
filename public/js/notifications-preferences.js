@@ -6,6 +6,7 @@
 import { state } from './state.js';
 import { saveWatchedTimetables } from './notifications-core.js';
 import { standardizeGroupName } from './utils.js';
+import { fetchTimetable } from './api.js';
 
 // Define notification types
 export const NOTIFICATION_TYPES = {
@@ -295,56 +296,60 @@ async function getAvailableGroups(watchedTimetable) {
     console.log('🔍 getAvailableGroups called for:', watchedTimetable);
 
     try {
-        // Convert scheduleType to schedule parameter (Actual → actual, Next → next, Permanent → permanent)
-        const scheduleParam = watchedTimetable.scheduleType.toLowerCase();
-        const url = `/api/timetable?type=${watchedTimetable.type}&id=${watchedTimetable.id}&schedule=${scheduleParam}`;
-        console.log('   Fetching from:', url);
+        // Fetch from Firebase cache using the imported fetchTimetable function
+        console.log('   Fetching from Firebase...');
 
-        const response = await fetch(url);
-        console.log('   Response status:', response.status);
+        const lessons = await fetchTimetable(
+            watchedTimetable.type,
+            watchedTimetable.id,
+            watchedTimetable.scheduleType
+        );
 
-        if (!response.ok) {
-            console.warn('   ⚠️  Response not OK, using fallback groups');
-            return ['all', 'celá', '1.sk', '2.sk']; // Fallback
+        if (!lessons || lessons.length === 0) {
+            console.warn('   ⚠️  No lessons in Firebase, using fallback groups');
+            return ['all', 'celá']; // Fallback (bez předpokladu číslovaných skupin)
         }
-
-        // API returns array directly, not wrapped in {data: [...]}
-        const lessons = await response.json();
         console.log('   Total lessons:', lessons.length);
-        console.log('   Sample lessons with groups:', lessons.filter(l => l.group).slice(0, 3));
+        console.log('   Sample ALL lessons:', lessons.slice(0, 5));
+
+        const lessonsWithGroups = lessons.filter(l => l.group);
+        console.log('   Lessons WITH groups:', lessonsWithGroups.length);
+        console.log('   Sample lessons with groups:', lessonsWithGroups.slice(0, 5));
 
         // Extrauj unikátní skupiny
         const groupsSet = new Set(['all']);
         lessons.forEach(lesson => {
+            console.log(`   Checking lesson: subject="${lesson.subject}", group="${lesson.group}", type="${typeof lesson.group}"`);
             if (lesson.group) {
                 const original = lesson.group;
                 const std = standardizeGroupName(lesson.group);
-                console.log(`   Group found: "${original}" → "${std}"`);
+                console.log(`   ✅ Group found: "${original}" → "${std}"`);
                 if (std) groupsSet.add(std);
             }
         });
 
-        // Pokud jsme nenašli žádné skupiny kromě 'all', přidej výchozí 'celá'
-        // (uživatel může mít rozvrh bez skupin)
-        if (groupsSet.size === 1) {
-            console.warn('   ⚠️ No groups found in lessons besides "all"');
-            groupsSet.add('celá'); // Celá třída jako výchozí možnost
+        console.log('   Groups in Set before filtering:', Array.from(groupsSet));
+
+        // Poznámka: "celá třída" není v dropdownu - hodiny bez skupiny
+        // procházejí filtrem vždy automaticky (backend logika)
+
+        // Odeber "all" - uživatel vybere všechny skupiny, pokud je chce všechny
+        groupsSet.delete('all');
+
+        // Pokud nejsou žádné skupiny (všechny hodiny pro celou třídu)
+        if (groupsSet.size === 0) {
+            console.warn('   ⚠️ No groups found - all lessons are for whole class');
+            return []; // Prázdný array = žádné skupiny k výběru
         }
 
-        // Seřaď: all → celá → 1.sk → 2.sk ...
-        const sorted = Array.from(groupsSet).sort((a, b) => {
-            if (a === 'all') return -1;
-            if (b === 'all') return 1;
-            if (a === 'celá') return -1;
-            if (b === 'celá') return 1;
-            return a.localeCompare(b);
-        });
+        // Seřaď skupiny abecedně: 1.sk → 2.sk → TVDi → ...
+        const sorted = Array.from(groupsSet).sort((a, b) => a.localeCompare(b));
 
         console.log('   ✅ Final groups:', sorted);
         return sorted;
     } catch (error) {
-        console.error('   ❌ Failed to get groups:', error);
-        return ['all', 'celá', '1.sk', '2.sk']; // Fallback
+        console.error('   ❌ Failed to get groups from Firebase:', error);
+        return []; // Fallback - prázdný array (všechny hodiny pro celou třídu)
     }
 }
 
@@ -380,6 +385,26 @@ async function populateGroupFilter(multiselectElement, watchedTimetable, index) 
         // Migrate from old single groupFilter to array
         const oldFilter = watchedTimetable.groupFilter || 'all';
         watchedTimetable.groupFilters = [oldFilter];
+    }
+
+    // Migrate old "celá" and "all" filters (hodiny pro celou třídu procházejí vždy automaticky)
+    if (watchedTimetable.groupFilters.includes('celá') || watchedTimetable.groupFilters.includes('all')) {
+        watchedTimetable.groupFilters = watchedTimetable.groupFilters
+            .filter(g => g !== 'celá' && g !== 'all');
+        console.log('   Migrated old "celá"/"all" filter to:', watchedTimetable.groupFilters);
+    }
+
+    // Pokud je groupFilters prázdný nebo obsahuje jen "all", načti všechny dostupné skupiny
+    if (watchedTimetable.groupFilters.length === 0 ||
+        (watchedTimetable.groupFilters.length === 1 && watchedTimetable.groupFilters[0] === 'all')) {
+        // Načteme skupiny a vybereme všechny jako výchozí
+        const availableGroups = await getAvailableGroups(watchedTimetable);
+        if (availableGroups.length > 0) {
+            watchedTimetable.groupFilters = [...availableGroups]; // Všechny skupiny vybrány
+            console.log('   Initialized groupFilters with all available groups:', watchedTimetable.groupFilters);
+        } else {
+            watchedTimetable.groupFilters = []; // Žádné skupiny k dispozici
+        }
     }
 
     // Load available groups
@@ -460,48 +485,18 @@ async function handleGroupFilterChange(checkbox, watchedTimetable, allGroups) {
 
     console.log(`🔄 Group filter toggled: "${value}" = ${isChecked}`);
 
-    // Handle "all" logic
-    if (value === 'all') {
-        if (isChecked) {
-            // If "all" is checked, uncheck everything else and only keep "all"
-            watchedTimetable.groupFilters = ['all'];
-            // Update all other checkboxes
-            const allCheckboxes = document.querySelectorAll(`input[type="checkbox"][value]:not([value="all"])`);
-            allCheckboxes.forEach(cb => {
-                if (cb.closest('.multiselect-dropdown') === checkbox.closest('.multiselect-dropdown')) {
-                    cb.checked = false;
-                }
-            });
-        } else {
-            // Can't uncheck "all" if it's the only one
-            if (watchedTimetable.groupFilters.length === 1 && watchedTimetable.groupFilters[0] === 'all') {
-                checkbox.checked = true;
-                return;
-            }
-            watchedTimetable.groupFilters = watchedTimetable.groupFilters.filter(g => g !== 'all');
+    // Handle group checkbox toggle (simple add/remove)
+    if (isChecked) {
+        // Add group if not already in array
+        if (!watchedTimetable.groupFilters.includes(value)) {
+            watchedTimetable.groupFilters.push(value);
         }
     } else {
-        // Specific group checkbox
-        if (isChecked) {
-            // Remove "all" if a specific group is selected
-            watchedTimetable.groupFilters = watchedTimetable.groupFilters.filter(g => g !== 'all');
-            watchedTimetable.groupFilters.push(value);
-
-            // Uncheck "all" checkbox
-            const allCheckbox = checkbox.closest('.multiselect-dropdown').querySelector('input[value="all"]');
-            if (allCheckbox) allCheckbox.checked = false;
-        } else {
-            // Remove the group
-            watchedTimetable.groupFilters = watchedTimetable.groupFilters.filter(g => g !== value);
-
-            // If nothing is selected, revert to "all"
-            if (watchedTimetable.groupFilters.length === 0) {
-                watchedTimetable.groupFilters = ['all'];
-                const allCheckbox = checkbox.closest('.multiselect-dropdown').querySelector('input[value="all"]');
-                if (allCheckbox) allCheckbox.checked = true;
-            }
-        }
+        // Remove the group
+        watchedTimetable.groupFilters = watchedTimetable.groupFilters.filter(g => g !== value);
     }
+
+    // Note: Prázdný groupFilters array je OK - backend vždy propustí hodiny bez skupiny (celá třída)
 
     // Update label
     const label = checkbox.closest('.multiselect-dropdown').querySelector('.multiselect-label');
@@ -518,49 +513,37 @@ async function handleGroupFilterChange(checkbox, watchedTimetable, allGroups) {
 
 /**
  * Update the multiselect label based on selected groups
+ * Poznámka: Hodiny pro celou třídu (bez skupiny) procházejí vždy automaticky
  */
 function updateGroupFilterLabel(label, groupFilters) {
-    if (!groupFilters || groupFilters.length === 0 || groupFilters.includes('all')) {
-        label.textContent = 'Všechny skupiny';
+    if (!groupFilters || groupFilters.length === 0) {
+        label.textContent = 'Žádná skupina vybrána';
     } else if (groupFilters.length === 1) {
-        const group = groupFilters[0];
-        label.textContent = group === 'celá' ? 'Celá třída' : group;
+        // Zobraz název vybrané skupiny (např. "1.sk", "2.sk")
+        label.textContent = groupFilters[0];
+    } else if (groupFilters.length === 2) {
+        label.textContent = `${groupFilters.join(', ')}`;
     } else {
         label.textContent = `${groupFilters.length} skupiny vybrány`;
     }
 }
 
 /**
- * Open group filter dropdown with fixed positioning
+ * Open group filter dropdown (uses CSS positioning now)
  */
 function openGroupFilterDropdown(trigger, menu) {
     trigger.classList.add('active');
     menu.classList.add('active');
 
-    // Position the dropdown
-    const rect = trigger.getBoundingClientRect();
-    const menuHeight = menu.offsetHeight;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-
-    // Set width to match trigger
-    menu.style.width = `${rect.width}px`;
-    menu.style.left = `${rect.left}px`;
-
-    // Position above or below based on available space
-    if (spaceBelow >= menuHeight || spaceBelow >= spaceAbove) {
-        // Position below
-        menu.style.top = `${rect.bottom}px`;
-        menu.style.bottom = 'auto';
-        menu.style.borderTopLeftRadius = '0';
-        menu.style.borderTopRightRadius = '0';
-    } else {
-        // Position above
-        menu.style.bottom = `${window.innerHeight - rect.top}px`;
-        menu.style.top = 'auto';
-        menu.style.borderBottomLeftRadius = '0';
-        menu.style.borderBottomRightRadius = '0';
-    }
+    // Clear any inline styles that might override CSS
+    menu.style.width = '';
+    menu.style.left = '';
+    menu.style.top = '';
+    menu.style.bottom = '';
+    menu.style.borderTopLeftRadius = '';
+    menu.style.borderTopRightRadius = '';
+    menu.style.borderBottomLeftRadius = '';
+    menu.style.borderBottomRightRadius = '';
 }
 
 /**

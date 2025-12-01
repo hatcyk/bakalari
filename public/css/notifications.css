@@ -244,17 +244,21 @@
 
 .multiselect-menu {
     display: none;
-    position: fixed;
-    /* Changed from absolute to fixed */
-    left: auto;
-    right: auto;
+    position: absolute;
+    /* Changed back to absolute so it scrolls with page */
+    left: 0;
+    right: 0;
+    top: 100%;
+    /* Position below trigger - no margin to connect directly */
     background: var(--card-bg);
     border: 2px solid var(--accent);
-    border-radius: 8px;
+    border-top: none;
+    /* No top border to connect with trigger */
+    border-radius: 0 0 8px 8px;
+    /* Only round bottom corners */
     max-height: 400px;
     overflow: hidden;
-    z-index: 10000;
-    /* Much higher to be above everything */
+    z-index: 1000;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(10px);
 }

@@ -3,7 +3,6 @@
  * Sends notifications to users 5 minutes before their lessons start
  */
 
-const { DateTime } = require('luxon');
 const { getFirestore } = require('./firebase-admin-init');
 const { sendNotificationToTokens } = require('./fcm');
 
@@ -136,13 +135,12 @@ function abbreviateSubject(subjectName) {
  * @returns {Object|null} { hour, startTime: [h, m], label, type: 'next'|'first' } or null if no match
  */
 function getNextLessonReminder() {
-    // Use Europe/Prague timezone for accurate local time
-    const now = DateTime.now().setZone('Europe/Prague');
-    const currentHour = now.hour;
-    const currentMinute = now.minute;
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-    console.log(`\n⏰ [TIMING] Current time (Europe/Prague): ${currentHour}:${currentMinute.toString().padStart(2, '0')} (${currentTimeInMinutes} minutes)`);
+    console.log(`\n⏰ [TIMING] Current time: ${currentHour}:${currentMinute.toString().padStart(2, '0')} (${currentTimeInMinutes} minutes)`);
 
     // Find if we're currently in any lesson
     let currentLesson = null;
@@ -219,10 +217,8 @@ function getNextLessonReminder() {
  * @returns {Number} Day index or -1 if weekend
  */
 function getTodayIndex() {
-    // Use Europe/Prague timezone for accurate local date
-    const now = DateTime.now().setZone('Europe/Prague');
-    const day = now.weekday; // Luxon: 1=Monday, 7=Sunday
-    return day === 6 || day === 7 ? -1 : day - 1;
+    const day = new Date().getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+    return day === 0 || day === 6 ? -1 : day - 1;
 }
 
 /**

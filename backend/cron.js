@@ -7,7 +7,7 @@ const cron = require('node-cron');
 const { prefetchAllData } = require('./prefetch');
 const { initializeFirebaseAdmin, getFirestore } = require('./firebase-admin-init');
 const { sendLessonReminders } = require('./lesson-reminder');
-const { sendApiOutageNotification, sendApiRestoredNotification } = require('./fcm');
+const { sendApiOutageNotification, sendApiRestoredNotification, processPendingChanges } = require('./fcm');
 
 let cronJob = null;
 let lessonReminderCron = null;
@@ -114,6 +114,10 @@ async function runPrefetch() {
 
         // Detect API status change and send notifications
         await detectAndNotifyStatusChange(isHealthy);
+
+        // Process pending changes and send notifications
+        console.log('📨 Processing pending change notifications...');
+        await processPendingChanges();
 
     } catch (error) {
         console.error(`❌ Prefetch failed:`, error.message);

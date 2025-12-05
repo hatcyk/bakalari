@@ -204,23 +204,30 @@ function getNextLessonReminder() {
         }
     }
 
-    // Case 2: Not in a lesson - check if we're 10 minutes before first lesson
-    const firstLesson = lessonTimes[0];
-    const [firstStartH, firstStartM] = firstLesson.start;
-    const firstStartInMinutes = firstStartH * 60 + firstStartM;
-    const minutesUntilFirstLesson = firstStartInMinutes - currentTimeInMinutes;
+    // Case 2: Not in a lesson - check for upcoming lessons (breaks between lessons)
+    // Find the next lesson that hasn't started yet
+    for (const lesson of lessonTimes) {
+        const [startH, startM] = lesson.start;
+        const startInMinutes = startH * 60 + startM;
+        const minutesUntilLesson = startInMinutes - currentTimeInMinutes;
 
-    console.log(`   Minutes until first lesson (${firstLesson.label}): ${minutesUntilFirstLesson} (trigger window: 9-11 minutes)`);
+        // Skip lessons that have already passed
+        if (minutesUntilLesson < 0) {
+            continue;
+        }
 
-    // If exactly 10 minutes before first lesson (or within 1 minute window)
-    if (minutesUntilFirstLesson >= 9 && minutesUntilFirstLesson <= 11) {
-        console.log(`   ✅ TRIGGER: Sending "first lesson" reminder for hour ${firstLesson.hour} (${firstLesson.label})`);
-        return {
-            hour: firstLesson.hour,
-            startTime: firstLesson.start,
-            label: firstLesson.label,
-            type: 'first'
-        };
+        console.log(`   Checking lesson hour ${lesson.hour} (${lesson.label}): ${minutesUntilLesson} minutes until start`);
+
+        // If we're 5 minutes before this lesson (with 1 minute tolerance for cron)
+        if (minutesUntilLesson >= 4 && minutesUntilLesson <= 6) {
+            console.log(`   ✅ TRIGGER: Sending reminder for upcoming lesson hour ${lesson.hour} (${lesson.label})`);
+            return {
+                hour: lesson.hour,
+                startTime: lesson.start,
+                label: lesson.label,
+                type: lesson.hour === 0 ? 'first' : 'next' // First lesson gets special type
+            };
+        }
     }
 
     console.log(`   ❌ No notification to send at this time`);

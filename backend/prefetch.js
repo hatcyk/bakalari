@@ -411,13 +411,12 @@ async function prefetchAllData() {
 
         console.log(`✅ Definitions saved: ${definitions.classes.length} classes, ${definitions.teachers.length} teachers, ${definitions.rooms.length} rooms`);
 
-        // Step 2: Calculate total requests
+        // Step 2: Calculate total possible requests
         const totalEntities = definitions.classes.length + definitions.teachers.length + definitions.rooms.length;
-        const totalExpectedRequests = totalEntities * SCHEDULE_TYPES.length;
+        const totalPossibleRequests = totalEntities * SCHEDULE_TYPES.length;
         console.log(`\n📊 Total entities: ${totalEntities}`);
-        console.log(`📊 Total requests to make: ${totalExpectedRequests} (${SCHEDULE_TYPES.length} schedule types per entity)`);
+        console.log(`📊 Maximum possible requests: ${totalPossibleRequests} (${SCHEDULE_TYPES.length} schedule types per entity)`);
         console.log(`📊 Parallel requests: ${CONCURRENT_REQUESTS}`);
-        console.log(`⏱️  Estimated time: ~${Math.ceil(totalExpectedRequests / CONCURRENT_REQUESTS * 0.5 / 60)} minutes\n`);
 
         // Step 3: Fetch all timetables in parallel batches
         const entityGroups = [
@@ -426,11 +425,45 @@ async function prefetchAllData() {
             { type: 'Room', entities: definitions.rooms },
         ];
 
+        // Check if we should fetch permanent schedules
+        // Permanent schedules only change at start of school year (September)
+        const currentMonth = new Date().getMonth(); // 0-11, where 8 = September
+        const isSeptember = currentMonth === 8;
+
+        // If not September, fetch existing permanent schedule IDs in one batch
+        let existingPermanentIds = new Set();
+        if (!isSeptember) {
+            const permanentDocs = await db.collection('timetables')
+                .where('scheduleType', '==', 'Permanent')
+                .select() // Only fetch document IDs, not the full data
+                .get();
+
+            permanentDocs.forEach(doc => {
+                existingPermanentIds.add(doc.id);
+            });
+
+            console.log(`📦 Found ${existingPermanentIds.size} existing permanent schedules in cache`);
+        }
+
         // Build task queue
         const tasks = [];
+        let skippedPermanentCount = 0;
+
         for (const group of entityGroups) {
             for (const entity of group.entities) {
                 for (const scheduleType of SCHEDULE_TYPES) {
+                    // Skip permanent schedules if:
+                    // 1. It's not September (new school year)
+                    // 2. We already have the data in Firebase
+                    if (scheduleType === 'Permanent' && !isSeptember) {
+                        const docKey = `${group.type}_${entity.id}_Permanent`;
+
+                        if (existingPermanentIds.has(docKey)) {
+                            skippedPermanentCount++;
+                            continue; // Skip this task
+                        }
+                    }
+
                     tasks.push({
                         type: group.type,
                         entity: entity,
@@ -440,7 +473,13 @@ async function prefetchAllData() {
             }
         }
 
-        console.log(`\n📚 Processing ${tasks.length} timetables with ${CONCURRENT_REQUESTS} parallel requests...\n`);
+        if (skippedPermanentCount > 0) {
+            console.log(`⏭️  Skipping ${skippedPermanentCount} permanent schedules (not September, already cached)`);
+        }
+
+        const totalExpectedRequests = tasks.length;
+        console.log(`\n📚 Processing ${totalExpectedRequests} timetables with ${CONCURRENT_REQUESTS} parallel requests...`);
+        console.log(`⏱️  Estimated time: ~${Math.ceil(totalExpectedRequests / CONCURRENT_REQUESTS * 0.5 / 60)} minutes\n`);
 
         // Process tasks in parallel batches
         const processBatch = async (batch) => {

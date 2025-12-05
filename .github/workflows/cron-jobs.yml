@@ -4,8 +4,8 @@ on:
   schedule:
     # Prefetch: Every 10 minutes
     - cron: '*/10 * * * *'
-    # Lesson reminders: Every 5 minutes (GitHub Actions minimum)
-    - cron: '*/5 * * * *'
+    # Lesson reminders: Every 3 minutes
+    - cron: '*/3 * * * *'
   workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -38,8 +38,8 @@ jobs:
   lesson-reminders:
     name: Send Lesson Reminders
     runs-on: ubuntu-latest
-    # Run only on the 5-minute schedule
-    if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
+    # Run only on the 3-minute schedule
+    if: github.event.schedule == '*/3 * * * *' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Call Lesson Reminders Endpoint

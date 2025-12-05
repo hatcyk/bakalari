@@ -6,6 +6,21 @@
 const { getFirestore } = require('./firebase-admin-init');
 const { sendNotificationToTokens } = require('./fcm');
 
+/**
+ * Get current time in Prague timezone (UTC+1 in winter, UTC+2 in summer)
+ * @returns {Date} Date object adjusted for Prague timezone
+ */
+function getPragueTime() {
+    const now = new Date();
+    // Get UTC time in milliseconds
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    // Add Prague offset (UTC+1)
+    // Note: This is simplified - in summer it should be UTC+2
+    // For now, we use fixed +1 hour offset
+    const pragueTime = new Date(utcTime + (3600000 * 1));
+    return pragueTime;
+}
+
 // Lesson times (copied from /public/js/constants.js)
 const lessonTimes = [
     { hour: 0, start: [7, 10], end: [7, 55], label: '7:10-7:55' },
@@ -135,7 +150,7 @@ function abbreviateSubject(subjectName) {
  * @returns {Object|null} { hour, startTime: [h, m], label, type: 'next'|'first' } or null if no match
  */
 function getNextLessonReminder() {
-    const now = new Date();
+    const now = getPragueTime();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
@@ -217,7 +232,7 @@ function getNextLessonReminder() {
  * @returns {Number} Day index or -1 if weekend
  */
 function getTodayIndex() {
-    const day = new Date().getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+    const day = getPragueTime().getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
     return day === 0 || day === 6 ? -1 : day - 1;
 }
 
@@ -431,7 +446,7 @@ function formatLessonNotification(lesson, currentLesson, startTime, reminderType
             room: room,
             startTime: startTime,
             reminderType: reminderType,
-            timestamp: new Date().toISOString()
+            timestamp: getPragueTime().toISOString()
         }
     };
 }
@@ -621,5 +636,6 @@ async function sendLessonReminders() {
 module.exports = {
     sendLessonReminders,
     getNextLessonReminder,
-    getTodayIndex
+    getTodayIndex,
+    getPragueTime
 };

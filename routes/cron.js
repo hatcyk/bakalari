@@ -6,7 +6,7 @@
 
 const express = require('express');
 const { triggerManualPrefetch } = require('../backend/cron');
-const { sendLessonReminders } = require('../backend/lesson-reminder');
+const { sendLessonReminders, getPragueTime } = require('../backend/lesson-reminder');
 
 const router = express.Router();
 
@@ -49,7 +49,7 @@ router.get('/prefetch', verifyCronRequest, async (req, res) => {
         res.json({
             success: true,
             message: 'Prefetch started',
-            timestamp: new Date().toISOString()
+            timestamp: getPragueTime().toISOString()
         });
     } catch (error) {
         console.error('Cron prefetch endpoint error:', error);
@@ -71,7 +71,7 @@ router.get('/lesson-reminders', verifyCronRequest, async (req, res) => {
         res.json({
             success: true,
             result: result,
-            timestamp: new Date().toISOString()
+            timestamp: getPragueTime().toISOString()
         });
     } catch (error) {
         console.error('Cron lesson reminders error:', error);

@@ -1,27 +1,21 @@
 /**
  * Lesson Reminder Module
  * Sends notifications to users 5 minutes before their lessons start
+ *
+ * NEW IMPLEMENTATION (2025-12-05):
+ * - Proper Prague timezone with DST support
+ * - Wide notification window (15 min to 1 min before lesson)
+ * - Firestore-based deduplication
+ * - Simple, reliable logic
  */
 
 const { getFirestore } = require('./firebase-admin-init');
 const { sendNotificationToTokens } = require('./fcm');
+const { getPragueTime, getPragueTimeInfo, isWeekend } = require('./timezone-manager');
+const { calculateNotificationWindows, findLessonsToNotify, formatMinutesToTime } = require('./schedule-calculator');
+const { hasNotificationBeenSent, recordNotificationSent } = require('./notification-tracker');
 
-/**
- * Get current time in Prague timezone (UTC+1 in winter, UTC+2 in summer)
- * @returns {Date} Date object adjusted for Prague timezone
- */
-function getPragueTime() {
-    const now = new Date();
-    // Get UTC time in milliseconds
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    // Add Prague offset (UTC+1)
-    // Note: This is simplified - in summer it should be UTC+2
-    // For now, we use fixed +1 hour offset
-    const pragueTime = new Date(utcTime + (3600000 * 1));
-    return pragueTime;
-}
-
-// Lesson times (copied from /public/js/constants.js)
+// Lesson times (from /public/js/constants.js)
 const lessonTimes = [
     { hour: 0, start: [7, 10], end: [7, 55], label: '7:10-7:55' },
     { hour: 1, start: [8, 0], end: [8, 45], label: '8:00-8:45' },
@@ -143,107 +137,6 @@ function abbreviateSubject(subjectName) {
 }
 
 /**
- * Get next lesson reminder time
- * Logic:
- * - If currently in a lesson: notify 5 minutes before current lesson ends (about next lesson)
- * - If not in a lesson yet today: notify 10 minutes before first lesson starts
- * @returns {Object|null} { hour, startTime: [h, m], label, type: 'next'|'first' } or null if no match
- */
-function getNextLessonReminder() {
-    const now = getPragueTime();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTimeInMinutes = currentHour * 60 + currentMinute;
-
-    console.log(`\n⏰ [TIMING] Current time: ${currentHour}:${currentMinute.toString().padStart(2, '0')} (${currentTimeInMinutes} minutes)`);
-
-    // Find if we're currently in any lesson
-    let currentLesson = null;
-    for (const lesson of lessonTimes) {
-        const [startH, startM] = lesson.start;
-        const [endH, endM] = lesson.end;
-        const startInMinutes = startH * 60 + startM;
-        const endInMinutes = endH * 60 + endM;
-
-        if (currentTimeInMinutes >= startInMinutes && currentTimeInMinutes < endInMinutes) {
-            currentLesson = lesson;
-            console.log(`   Currently IN lesson: Hour ${lesson.hour} (${lesson.label})`);
-            break;
-        }
-    }
-
-    if (!currentLesson) {
-        console.log(`   NOT in any lesson currently (between lessons or outside school hours)`);
-    }
-
-    // Case 1: We're in a lesson - check if we're 5 minutes before it ends
-    if (currentLesson) {
-        const [endH, endM] = currentLesson.end;
-        const endTimeInMinutes = endH * 60 + endM;
-        const minutesUntilEnd = endTimeInMinutes - currentTimeInMinutes;
-
-        console.log(`   Minutes until current lesson ends: ${minutesUntilEnd} (trigger window: 4-6 minutes)`);
-
-        // If exactly 5 minutes before end (or within 1 minute window for cron tolerance)
-        if (minutesUntilEnd >= 4 && minutesUntilEnd <= 6) {
-            // Find next lesson slot
-            const nextLessonSlot = lessonTimes.find(l => l.hour === currentLesson.hour + 1);
-            if (nextLessonSlot) {
-                console.log(`   ✅ TRIGGER: Sending "next lesson" reminder for hour ${nextLessonSlot.hour} (${nextLessonSlot.label})`);
-                return {
-                    hour: nextLessonSlot.hour,
-                    startTime: nextLessonSlot.start,
-                    label: nextLessonSlot.label,
-                    type: 'next'
-                };
-            } else {
-                console.log(`   ⚠️ No next lesson slot found after hour ${currentLesson.hour}`);
-            }
-        } else {
-            console.log(`   ❌ Not in trigger window (need 4-6 minutes before end)`);
-        }
-    }
-
-    // Case 2: Not in a lesson - check for upcoming lessons (breaks between lessons)
-    // Find the next lesson that hasn't started yet
-    for (const lesson of lessonTimes) {
-        const [startH, startM] = lesson.start;
-        const startInMinutes = startH * 60 + startM;
-        const minutesUntilLesson = startInMinutes - currentTimeInMinutes;
-
-        // Skip lessons that have already passed
-        if (minutesUntilLesson < 0) {
-            continue;
-        }
-
-        console.log(`   Checking lesson hour ${lesson.hour} (${lesson.label}): ${minutesUntilLesson} minutes until start`);
-
-        // If we're 5 minutes before this lesson (with 1 minute tolerance for cron)
-        if (minutesUntilLesson >= 4 && minutesUntilLesson <= 6) {
-            console.log(`   ✅ TRIGGER: Sending reminder for upcoming lesson hour ${lesson.hour} (${lesson.label})`);
-            return {
-                hour: lesson.hour,
-                startTime: lesson.start,
-                label: lesson.label,
-                type: lesson.hour === 0 ? 'first' : 'next' // First lesson gets special type
-            };
-        }
-    }
-
-    console.log(`   ❌ No notification to send at this time`);
-    return null;
-}
-
-/**
- * Get today's day index (0=Monday, 4=Friday)
- * @returns {Number} Day index or -1 if weekend
- */
-function getTodayIndex() {
-    const day = getPragueTime().getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-    return day === 0 || day === 6 ? -1 : day - 1;
-}
-
-/**
  * Get all users who have lesson reminders enabled
  * @returns {Promise<Array>} Array of { userId, tokens, watchedTimetables }
  */
@@ -259,35 +152,12 @@ async function getUsersWithLessonReminders() {
             const preferences = userData.preferences;
             const userId = userDoc.id;
 
-            // Debug logging for specific user
-            const DEBUG_USER = 'anonymous-1764059732165';
-            const isDebugUser = userId === DEBUG_USER;
-
-            if (isDebugUser) {
-                console.log(`\n🔍 DEBUG USER: ${userId}`);
-                console.log(`   Has tokens: ${userData.tokens ? userData.tokens.length : 0}`);
-                console.log(`   Tokens:`, userData.tokens);
-                console.log(`   Preferences:`, JSON.stringify(preferences, null, 2));
-            }
-
             // Check if user has any lesson reminders enabled in any watched timetable
             const watchedTimetables = preferences?.watchedTimetables || [];
             const hasAnyReminders = watchedTimetables.some(timetable => {
                 const reminders = timetable.notificationTypes?.reminders || {};
-                const hasReminder = reminders.next_lesson_room || reminders.next_lesson_teacher || reminders.next_lesson_subject;
-
-                if (isDebugUser) {
-                    console.log(`   Timetable: ${timetable.name} (${timetable.type}/${timetable.id})`);
-                    console.log(`     Reminders:`, reminders);
-                    console.log(`     Has any reminder: ${hasReminder}`);
-                }
-
-                return hasReminder;
+                return reminders.next_lesson_room || reminders.next_lesson_teacher || reminders.next_lesson_subject;
             });
-
-            if (isDebugUser) {
-                console.log(`   ✅ Has ANY reminders enabled: ${hasAnyReminders}`);
-            }
 
             if (hasAnyReminders && userData.tokens && userData.tokens.length > 0) {
                 usersWithReminders.push({
@@ -295,20 +165,13 @@ async function getUsersWithLessonReminders() {
                     tokens: userData.tokens,
                     watchedTimetables: watchedTimetables
                 });
-
-                if (isDebugUser) {
-                    console.log(`   ✅ User ADDED to reminder list\n`);
-                }
-            } else if (isDebugUser) {
-                console.log(`   ❌ User NOT added to reminder list`);
-                console.log(`      Reason: hasReminders=${hasAnyReminders}, hasTokens=${userData.tokens && userData.tokens.length > 0}\n`);
             }
         });
 
         return usersWithReminders;
 
     } catch (error) {
-        console.error('Failed to get users with lesson reminders:', error.message);
+        console.error('❌ [ERROR] Failed to get users with lesson reminders:', error.message);
         throw error;
     }
 }
@@ -322,13 +185,12 @@ async function getUsersWithLessonReminders() {
  */
 async function getTodaysTimetableForUser(watchedTimetable, todayIndex, cache = null) {
     try {
-        // Document key: Type_Id_ScheduleType (use Actual for current schedule)
+        // Document key: Type_Id_Actual (use Actual for current schedule)
         const docKey = `${watchedTimetable.type}_${watchedTimetable.id}_Actual`;
 
         // Check cache first
         if (cache && cache.has(docKey)) {
             const cachedData = cache.get(docKey);
-            // Filter for today's lessons
             return cachedData.filter(lesson => lesson.day === todayIndex);
         }
 
@@ -349,12 +211,10 @@ async function getTodaysTimetableForUser(watchedTimetable, todayIndex, cache = n
         }
 
         // Filter for today's lessons
-        const todaysLessons = allLessons.filter(lesson => lesson.day === todayIndex);
-
-        return todaysLessons;
+        return allLessons.filter(lesson => lesson.day === todayIndex);
 
     } catch (error) {
-        console.error(`Failed to get timetable for ${watchedTimetable.type}/${watchedTimetable.id}:`, error.message);
+        console.error(`❌ Failed to get timetable for ${watchedTimetable.type}/${watchedTimetable.id}:`, error.message);
         return [];
     }
 }
@@ -384,7 +244,7 @@ function standardizeGroupName(groupName) {
         return 'celá';
     }
 
-    // Extrahuj číslo: "1. sk", "skupina 1", "1.skupina" → "1.sk"
+    // Extract number: "1. sk", "skupina 1", "1.skupina" → "1.sk"
     const groupMatch = lower.match(/(\d+)[\.\s]*(?:skupina|sk)?|(?:skupina|sk)[\.\s]*(\d+)/);
     if (groupMatch) {
         const groupNum = groupMatch[1] || groupMatch[2];
@@ -396,51 +256,16 @@ function standardizeGroupName(groupName) {
 
 /**
  * Format lesson notification
- * @param {Object} lesson - Next lesson data
- * @param {Object} currentLesson - Current lesson data (optional, for 'next' type)
+ * @param {Object} lesson - Lesson data
  * @param {String} startTime - Start time label (e.g., "8:00")
- * @param {String} reminderType - 'next' or 'first'
- * @returns {Object|null} { title, body, data } or null to skip notification
+ * @returns {Object} { title, body, data }
  */
-function formatLessonNotification(lesson, currentLesson, startTime, reminderType = 'next') {
+function formatLessonNotification(lesson, startTime) {
     const subjectAbbr = abbreviateSubject(lesson.subject);
     const room = lesson.room || '?';
     const teacher = lesson.teacher || '?';
 
-    // Title depends on reminder type
-    let title;
-    if (reminderType === 'first') {
-        title = `Za 10 minut: ${subjectAbbr}`;
-    } else {
-        // Pro "next" typ - porovnej s aktuální hodinou
-        if (currentLesson) {
-            const isSameSubject = currentLesson.subject === lesson.subject;
-
-            if (isSameSubject) {
-                // Stejný předmět - zkontroluj, zda se změnila místnost nebo učitel
-                const roomChanged = currentLesson.room !== lesson.room;
-                const teacherChanged = currentLesson.teacher !== lesson.teacher;
-
-                if (roomChanged || teacherChanged) {
-                    // Změna místnosti nebo učitele - upozorni
-                    title = `Další ${subjectAbbr}: ${room}`;
-                    console.log(`ℹ️  Same subject but different room/teacher - sending notification`);
-                } else {
-                    // Úplně stejná hodina pokračuje - skipni notifikaci
-                    console.log(`⏭️  Same lesson continues (${lesson.subject}) - skipping notification`);
-                    return null;
-                }
-            } else {
-                // Jiný předmět
-                title = `Příští hodina: ${subjectAbbr}`;
-            }
-        } else {
-            // Nemáme info o aktuální hodině - použij výchozí text
-            title = `Příští hodina: ${subjectAbbr}`;
-        }
-    }
-
-    // Body: "202 • MAT • M. Velingerová"
+    const title = `Za 5 minut: ${subjectAbbr}`;
     const body = `${room} • ${subjectAbbr} • ${teacher}`;
 
     return {
@@ -452,197 +277,232 @@ function formatLessonNotification(lesson, currentLesson, startTime, reminderType
             teacher: lesson.teacher,
             room: room,
             startTime: startTime,
-            reminderType: reminderType,
-            timestamp: getPragueTime().toISOString()
+            timestamp: new Date().toISOString()
         }
     };
 }
 
 /**
  * Main function: Check for upcoming lessons and send reminders
+ * @param {Object} [options] - Optional parameters for testing
+ * @param {Date} [options.mockTime] - Mock time for testing
+ * @param {Boolean} [options.dryRun] - If true, don't actually send notifications
+ * @returns {Promise<Object>} Result object
  */
-async function sendLessonReminders() {
+async function sendLessonReminders(options = {}) {
+    const { mockTime = null, dryRun = false } = options;
+
     try {
-        // 1. Check if today is weekend
-        const todayIndex = getTodayIndex();
-        if (todayIndex === -1) {
-            // Weekend - no lessons
+        // 1. Get Prague time and check basic conditions
+        const timeInfo = getPragueTimeInfo(mockTime);
+
+        console.log(`\n⏰ [INIT] Starting lesson reminder check`);
+        console.log(`   Prague time: ${timeInfo.formatted} (UTC${timeInfo.isDST ? '+2' : '+1'}, DST: ${timeInfo.isDST})`);
+        console.log(`   Day: ${timeInfo.dayOfWeek === 1 ? 'Monday' : timeInfo.dayOfWeek === 2 ? 'Tuesday' : timeInfo.dayOfWeek === 3 ? 'Wednesday' : timeInfo.dayOfWeek === 4 ? 'Thursday' : timeInfo.dayOfWeek === 5 ? 'Friday' : timeInfo.dayOfWeek === 6 ? 'Saturday' : 'Sunday'} (index: ${timeInfo.dayIndex})`);
+
+        // Check if weekend
+        if (isWeekend(mockTime)) {
+            console.log(`⏭️  Weekend - no lessons`);
             return { sent: 0, reason: 'weekend' };
         }
 
-        // 2. Get next lesson reminder (either 5 min before current lesson ends, or 10 min before first lesson)
-        const upcomingLesson = getNextLessonReminder();
-        if (!upcomingLesson) {
-            // No reminder to send at this time
-            return { sent: 0, reason: 'no_upcoming_lesson' };
+        // 2. Calculate notification windows for all lessons
+        const windows = calculateNotificationWindows(timeInfo.timeInMinutes, lessonTimes);
+        const lessonsToNotify = findLessonsToNotify(windows);
+
+        console.log(`\n📅 [SCHEDULE] Calculated ${windows.length} lesson windows`);
+        console.log(`   Lessons in notification window: ${lessonsToNotify.length}`);
+
+        if (lessonsToNotify.length === 0) {
+            // Log next upcoming lesson for debugging
+            const nextLesson = windows.find(w => w.minutesUntilLesson > 0);
+            if (nextLesson) {
+                console.log(`   Next lesson: Hour ${nextLesson.hour} at ${nextLesson.lessonStartFormatted} (in ${nextLesson.minutesUntilLesson} min)`);
+                console.log(`   Notification window: ${nextLesson.windowStartFormatted} - ${nextLesson.windowEndFormatted}`);
+            }
+            return { sent: 0, reason: 'no_lessons_in_window' };
         }
 
-        const reminderTypeText = upcomingLesson.type === 'first'
-            ? 'First lesson starts in 10 minutes'
-            : 'Next lesson reminder (5 min before current lesson ends)';
-
-        console.log(`\n📚 ${reminderTypeText}: Lesson ${upcomingLesson.hour} (${upcomingLesson.label})`);
+        // Log lessons to notify
+        lessonsToNotify.forEach(lesson => {
+            console.log(`\n🔍 [WINDOW] Lesson hour ${lesson.hour} (${lesson.label})`);
+            console.log(`   Window: ${lesson.windowStartFormatted} - ${lesson.windowEndFormatted}`);
+            console.log(`   Target: ${lesson.targetTimeFormatted}`);
+            console.log(`   Status: IN WINDOW ✅`);
+        });
 
         // 3. Get all users with lesson reminders enabled
         const users = await getUsersWithLessonReminders();
 
         if (users.length === 0) {
-            console.log('⏭️  No users with lesson reminders enabled');
+            console.log(`\n⏭️  No users with lesson reminders enabled`);
             return { sent: 0, reason: 'no_users' };
         }
 
-        console.log(`📋 Found ${users.length} users with lesson reminders enabled`);
+        console.log(`\n👥 [USERS] Found ${users.length} users with lesson reminders enabled`);
 
-        // 4. For each user, check their timetables and send notifications
+        // 4. For each lesson in notification window, send reminders to users
         let totalSent = 0;
         let totalUsers = 0;
+        let totalSkipped = 0;
 
-        // Cache for timetable data to avoid redundant Firestore reads
-        // Map<docKey, allLessons>
+        // Cache for timetable data
         const timetableCache = new Map();
-        let cacheHits = 0;
-        let cacheMisses = 0;
 
         const startTime = Date.now();
 
-        for (const user of users) {
-            try {
-                if (user.watchedTimetables.length === 0) {
-                    continue;
-                }
+        for (const lessonWindow of lessonsToNotify) {
+            console.log(`\n📚 [LESSON] Processing hour ${lessonWindow.hour} (${lessonWindow.label})`);
 
-                let userHasLesson = false;
-                const userLessons = [];
-
-                // Check each watched timetable
-                for (const watchedTimetable of user.watchedTimetables) {
-                    // Track cache usage for debug
-                    const docKey = `${watchedTimetable.type}_${watchedTimetable.id}_Actual`;
-                    if (timetableCache.has(docKey)) cacheHits++; else cacheMisses++;
-
-                    const todaysLessons = await getTodaysTimetableForUser(watchedTimetable, todayIndex, timetableCache);
-                    const lessonsInSlot = findLessonInSlot(todaysLessons, upcomingLesson.hour);
-
-                    // Filter out removed/cancelled lessons
-                    const validLessons = lessonsInSlot.filter(lesson =>
-                        lesson.type !== 'removed' && lesson.subject && lesson.subject.trim() !== ''
+            for (const user of users) {
+                try {
+                    // Check if notification already sent (IDEMPOTENCY)
+                    const alreadySent = await hasNotificationBeenSent(
+                        user.userId,
+                        timeInfo.formattedDate,
+                        lessonWindow.hour
                     );
 
-                    // Filter by group preferences (supports multiple groups)
-                    // Backwards compatibility: migrate groupFilter to groupFilters
-                    let groupFilters = watchedTimetable.groupFilters;
-                    if (!groupFilters && watchedTimetable.groupFilter) {
-                        groupFilters = [watchedTimetable.groupFilter];
-                    } else if (!groupFilters) {
-                        groupFilters = [];
-                    }
-
-                    const groupFilteredLessons = validLessons.filter(lesson => {
-                        // Debug logging pro diagnostiku
-                        const debugInfo = {
-                            subject: lesson.subject,
-                            group: lesson.group,
-                            groupType: typeof lesson.group,
-                            groupFilters: groupFilters
-                        };
-
-                        // Empty array or "all" - zobraz vše
-                        if (groupFilters.length === 0 || groupFilters.includes('all')) {
-                            console.log(`[FILTER] ✅ PASS (all groups): ${lesson.subject}`, debugInfo);
-                            return true;
-                        }
-
-                        // Hodina bez skupiny - zobraz vždy (je pro celou třídu)
-                        // Robustní kontrola pro různé případy: null, undefined, prázdný string
-                        const hasNoGroup = !lesson.group ||
-                                          (typeof lesson.group === 'string' && lesson.group.trim() === '');
-
-                        if (hasNoGroup) {
-                            console.log(`[FILTER] ✅ PASS (no group - whole class): ${lesson.subject}`, debugInfo);
-                            return true;
-                        }
-
-                        // Porovnej standardizované skupiny
-                        const standardizedLessonGroup = standardizeGroupName(lesson.group);
-                        const passes = groupFilters.includes(standardizedLessonGroup);
-
-                        console.log(`[FILTER] ${passes ? '✅ PASS' : '❌ FAIL'} (group match): ${lesson.subject}, standardized: "${standardizedLessonGroup}"`, debugInfo);
-                        return passes;
-                    });
-
-                    // Filter out "Dívčí tělocvik" lessons
-                    const filteredLessons = groupFilteredLessons.filter(lesson =>
-                        !lesson.subject || !lesson.subject.toLowerCase().includes('dívčí tělocvik')
-                    );
-
-                    if (filteredLessons.length > 0) {
-                        userHasLesson = true;
-                        userLessons.push(...filteredLessons);
-                    }
-                }
-
-                if (userHasLesson && userLessons.length > 0) {
-                    // Send notification for first lesson (if multiple, they're usually the same subject)
-                    const lesson = userLessons[0];
-
-                    // Pokud je to "next" reminder (5 min před koncem hodiny), získej aktuální hodinu
-                    let currentLessonData = null;
-                    if (upcomingLesson.type === 'next' && upcomingLesson.hour > 0) {
-                        // Aktuální hodina je o 1 menší než upcoming
-                        const currentHour = upcomingLesson.hour - 1;
-                        const currentLessonsInSlot = await getTodaysTimetableForUser(
-                            user.watchedTimetables[0], // Používáme první watched timetable
-                            todayIndex,
-                            timetableCache
-                        );
-                        const currentLessons = findLessonInSlot(currentLessonsInSlot, currentHour);
-                        if (currentLessons.length > 0) {
-                            currentLessonData = currentLessons[0];
-                        }
-                    }
-
-                    const notification = formatLessonNotification(
-                        lesson,
-                        currentLessonData,
-                        upcomingLesson.label,
-                        upcomingLesson.type
-                    );
-
-                    // Skip pokud notification je null (stejná hodina pokračuje)
-                    if (!notification) {
-                        console.log(`⏭️  Skipped notification for user ${user.userId} - same lesson continues`);
+                    if (alreadySent) {
+                        console.log(`🔐 [DEDUP] User ${user.userId} / hour ${lessonWindow.hour} - already sent, skipping`);
+                        totalSkipped++;
                         continue;
                     }
 
-                    const result = await sendNotificationToTokens(user.tokens, notification);
-                    totalSent += result.successCount;
+                    console.log(`🔐 [DEDUP] User ${user.userId} / hour ${lessonWindow.hour} - not sent yet`);
+
+                    // Get user's lessons for this hour
+                    let userHasLesson = false;
+                    const userLessons = [];
+
+                    for (const watchedTimetable of user.watchedTimetables) {
+                        const todaysLessons = await getTodaysTimetableForUser(
+                            watchedTimetable,
+                            timeInfo.dayIndex,
+                            timetableCache
+                        );
+                        const lessonsInSlot = findLessonInSlot(todaysLessons, lessonWindow.hour);
+
+                        // Filter out removed/cancelled lessons
+                        const validLessons = lessonsInSlot.filter(lesson =>
+                            lesson.type !== 'removed' && lesson.subject && lesson.subject.trim() !== ''
+                        );
+
+                        // Filter by group preferences
+                        let groupFilters = watchedTimetable.groupFilters;
+                        if (!groupFilters && watchedTimetable.groupFilter) {
+                            groupFilters = [watchedTimetable.groupFilter];
+                        } else if (!groupFilters) {
+                            groupFilters = [];
+                        }
+
+                        const groupFilteredLessons = validLessons.filter(lesson => {
+                            // Empty array or "all" - show all
+                            if (groupFilters.length === 0 || groupFilters.includes('all')) {
+                                return true;
+                            }
+
+                            // Lesson without group - show always (whole class)
+                            const hasNoGroup = !lesson.group ||
+                                (typeof lesson.group === 'string' && lesson.group.trim() === '');
+
+                            if (hasNoGroup) {
+                                return true;
+                            }
+
+                            // Compare standardized groups
+                            const standardizedLessonGroup = standardizeGroupName(lesson.group);
+                            return groupFilters.includes(standardizedLessonGroup);
+                        });
+
+                        // Filter out "Dívčí tělocvik" lessons
+                        const filteredLessons = groupFilteredLessons.filter(lesson =>
+                            !lesson.subject || !lesson.subject.toLowerCase().includes('dívčí tělocvik')
+                        );
+
+                        if (filteredLessons.length > 0) {
+                            userHasLesson = true;
+                            userLessons.push(...filteredLessons);
+                        }
+                    }
+
+                    if (!userHasLesson || userLessons.length === 0) {
+                        console.log(`   ⏭️  User ${user.userId} has no lesson in hour ${lessonWindow.hour}`);
+                        continue;
+                    }
+
+                    // Send notification for first lesson (if multiple, they're usually the same subject)
+                    const lesson = userLessons[0];
+
+                    console.log(`📚 [TIMETABLE] User ${user.userId} has lesson: ${lesson.subject}`);
+                    console.log(`   Room: ${lesson.room}, Teacher: ${lesson.teacher}`);
+
+                    const notification = formatLessonNotification(lesson, lessonWindow.lessonStartFormatted);
+
+                    if (!dryRun) {
+                        const result = await sendNotificationToTokens(user.tokens, notification);
+                        totalSent += result.successCount;
+
+                        console.log(`📨 [SEND] Sent to user ${user.userId}: ${notification.title}`);
+                        console.log(`   Tokens: ${user.tokens.length}, Success: ${result.successCount}`);
+
+                        // Record notification as sent
+                        await recordNotificationSent(
+                            user.userId,
+                            timeInfo.formattedDate,
+                            lessonWindow.hour,
+                            {
+                                lessonStartTime: lessonWindow.lessonStartFormatted,
+                                timetableId: `${user.watchedTimetables[0].type}_${user.watchedTimetables[0].id}_Actual`,
+                                lessonDetails: {
+                                    subject: lesson.subject,
+                                    room: lesson.room,
+                                    teacher: lesson.teacher
+                                },
+                                cronExecutionTime: new Date().toISOString(),
+                                pragueTime: timeInfo.formattedTime
+                            }
+                        );
+                    } else {
+                        console.log(`🔍 [DRY RUN] Would send to user ${user.userId}: ${notification.title}`);
+                        totalSent++;
+                    }
+
                     totalUsers++;
 
-                    console.log(`✅ Sent reminder to user ${user.userId}: ${notification.title} - ${notification.body}`);
+                } catch (error) {
+                    console.error(`❌ [ERROR] Failed to send reminder to user ${user.userId}:`, error.message);
+                    // Continue with other users
                 }
-
-            } catch (error) {
-                console.error(`Failed to send reminder to user ${user.userId}:`, error.message);
             }
         }
 
         const duration = Date.now() - startTime;
-        console.log(`⏱️  Processing time: ${duration}ms`);
-        console.log(`📊 Cache stats: ${cacheHits} hits, ${cacheMisses} misses (Efficiency: ${Math.round(cacheHits / (cacheHits + cacheMisses) * 100)}%)`);
 
-        console.log(`\n✅ Sent ${totalSent} lesson reminders to ${totalUsers} users`);
+        console.log(`\n✅ [DONE] Summary`);
+        console.log(`   Total notifications sent: ${totalSent}`);
+        console.log(`   Total users notified: ${totalUsers}`);
+        console.log(`   Total skipped (already sent): ${totalSkipped}`);
+        console.log(`   Lessons processed: ${lessonsToNotify.length} (hours: ${lessonsToNotify.map(l => l.hour).join(', ')})`);
+        console.log(`   Duration: ${duration}ms\n`);
 
-        return { sent: totalSent, users: totalUsers, lesson: upcomingLesson.hour, type: upcomingLesson.type };
+        return {
+            sent: totalSent,
+            users: totalUsers,
+            skipped: totalSkipped,
+            lessons: lessonsToNotify.map(l => l.hour),
+            dryRun: dryRun
+        };
 
     } catch (error) {
-        console.error('❌ Failed to send lesson reminders:', error.message);
+        console.error('❌ [ERROR] Failed to send lesson reminders:', error.message);
+        console.error(error.stack);
         throw error;
     }
 }
 
 module.exports = {
     sendLessonReminders,
-    getNextLessonReminder,
-    getTodayIndex,
-    getPragueTime
+    getPragueTimeInfo, // Re-export for compatibility
+    lessonTimes
 };

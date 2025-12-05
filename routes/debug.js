@@ -6,6 +6,10 @@
 const express = require('express');
 const { getFirestore } = require('../backend/firebase-admin-init');
 const { sendNotificationToTokens, processPendingChanges } = require('../backend/fcm');
+const { sendLessonReminders } = require('../backend/lesson-reminder');
+const { getScheduleStatus } = require('../backend/schedule-calculator');
+const { getPragueTimeInfo } = require('../backend/timezone-manager');
+const { clearNotificationsForDate } = require('../backend/notification-tracker');
 
 const router = express.Router();
 const DEBUG = process.env.DEBUG === 'true';
@@ -276,6 +280,96 @@ router.delete('/clear-changes', requireDebugMode, async (req, res) => {
 
     } catch (error) {
         console.error('Clear changes error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get lesson reminder schedule status
+router.get('/lesson-reminder-status', requireDebugMode, async (req, res) => {
+    try {
+        const { time } = req.query;
+
+        // Parse mock time if provided
+        const mockTime = time ? new Date(time) : null;
+
+        // Get Prague time info
+        const timeInfo = getPragueTimeInfo(mockTime);
+
+        // Get schedule status (requires lessonTimes from lesson-reminder.js)
+        const { lessonTimes } = require('../backend/lesson-reminder');
+        const scheduleStatus = getScheduleStatus(timeInfo.timeInMinutes, lessonTimes);
+
+        res.json({
+            success: true,
+            mockTime: mockTime ? mockTime.toISOString() : null,
+            pragueTime: timeInfo,
+            schedule: scheduleStatus
+        });
+
+    } catch (error) {
+        console.error('Get lesson reminder status error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Test lesson reminders with mock time
+router.get('/test-lesson-reminder', requireDebugMode, async (req, res) => {
+    try {
+        const { time, dryRun } = req.query;
+
+        // Parse mock time if provided (format: YYYY-MM-DDTHH:mm:ss or just HH:mm)
+        let mockTime = null;
+        if (time) {
+            if (time.includes('T')) {
+                // Full ISO format
+                mockTime = new Date(time);
+            } else if (time.includes(':')) {
+                // Just time (HH:mm or HH:mm:ss) - use today's date
+                const today = new Date();
+                const [hours, minutes, seconds = 0] = time.split(':').map(Number);
+                mockTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, seconds);
+            } else {
+                return res.status(400).json({ error: 'Invalid time format. Use YYYY-MM-DDTHH:mm:ss or HH:mm' });
+            }
+        }
+
+        // Run lesson reminder logic
+        const result = await sendLessonReminders({
+            mockTime: mockTime,
+            dryRun: dryRun === 'true' || dryRun === '1'
+        });
+
+        res.json({
+            success: true,
+            mockTime: mockTime ? mockTime.toISOString() : null,
+            result: result
+        });
+
+    } catch (error) {
+        console.error('Test lesson reminder error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Clear lesson notification records for a specific date
+router.delete('/clear-lesson-notifications', requireDebugMode, async (req, res) => {
+    try {
+        const { date } = req.query;
+
+        if (!date) {
+            return res.status(400).json({ error: 'Date parameter required (format: YYYY-MM-DD)' });
+        }
+
+        const deleted = await clearNotificationsForDate(date);
+
+        res.json({
+            success: true,
+            message: `Cleared ${deleted} notification records for date ${date}`,
+            deleted: deleted
+        });
+
+    } catch (error) {
+        console.error('Clear lesson notifications error:', error);
         res.status(500).json({ error: error.message });
     }
 });

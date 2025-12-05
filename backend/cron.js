@@ -8,9 +8,11 @@ const { prefetchAllData } = require('./prefetch');
 const { initializeFirebaseAdmin, getFirestore } = require('./firebase-admin-init');
 const { sendLessonReminders } = require('./lesson-reminder');
 const { sendApiOutageNotification, sendApiRestoredNotification, processPendingChanges } = require('./fcm');
+const { cleanupOldNotifications } = require('./notification-tracker');
 
 let cronJob = null;
 let lessonReminderCron = null;
+let cleanupCron = null;
 let isRunning = false;
 
 // Track last prefetch status (in-memory fallback)
@@ -216,9 +218,16 @@ function startCronJob() {
         sendLessonReminders().catch(err => console.error('Lesson reminder failed:', err));
     });
 
+    // Schedule cleanup cron: Daily at midnight (00:00)
+    cleanupCron = cron.schedule('0 0 * * *', () => {
+        console.log('🧹 Daily cleanup triggered');
+        cleanupOldNotifications(7).catch(err => console.error('Cleanup failed:', err));
+    });
+
     console.log('✅ Cron jobs scheduled:');
     console.log('   - Prefetch: Running every 10 minutes');
-    console.log('   - Lesson reminders: Running every minute\n');
+    console.log('   - Lesson reminders: Running every minute');
+    console.log('   - Cleanup: Running daily at midnight (old notification records)\n');
 }
 
 /**
@@ -235,6 +244,11 @@ function stopCronJob() {
         lessonReminderCron = null;
         console.log('🛑 Lesson reminder cron job stopped');
     }
+    if (cleanupCron) {
+        cleanupCron.stop();
+        cleanupCron = null;
+        console.log('🛑 Cleanup cron job stopped');
+    }
 }
 
 /**
@@ -244,6 +258,7 @@ function getCronStatus() {
     return {
         running: cronJob !== null,
         lessonReminderRunning: lessonReminderCron !== null,
+        cleanupRunning: cleanupCron !== null,
         prefetchInProgress: isRunning,
     };
 }

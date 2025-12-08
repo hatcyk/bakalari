@@ -201,9 +201,16 @@ function startCronJob() {
         return;
     }
 
-    // Run immediately on startup
-    console.log('🚀 Running initial prefetch on startup...');
-    runPrefetch().catch(err => console.error('Initial prefetch failed:', err));
+    // Run immediately on startup (unless disabled for dev)
+    const skipInitialPrefetch = process.env.SKIP_INITIAL_PREFETCH === 'true';
+
+    if (skipInitialPrefetch) {
+        console.log('⏭️  Skipping initial prefetch (SKIP_INITIAL_PREFETCH=true)');
+        console.log('   To run prefetch manually: POST /api/prefetch/trigger\n');
+    } else {
+        console.log('🚀 Running initial prefetch on startup...');
+        runPrefetch().catch(err => console.error('Initial prefetch failed:', err));
+    }
 
     // Schedule cron: Every 10 minutes
     // Cron format: minute hour day month weekday

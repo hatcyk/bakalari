@@ -182,8 +182,26 @@ router.get('/timetable', async (req, res) => {
 });
 
 // Get definitions (classes, teachers, rooms)
+// Now returns cached data from Firebase instead of fetching from Bakalari
 router.get('/definitions', async (req, res) => {
     try {
+        // Try to get from Firebase cache first
+        const { getFirestore } = require('../backend/firebase-admin-init');
+        const db = getFirestore();
+        const definitionsDoc = await db.collection('definitions').doc('current').get();
+
+        if (definitionsDoc.exists) {
+            const data = definitionsDoc.data();
+            res.json({
+                classes: data.classes || [],
+                teachers: data.teachers || [],
+                rooms: data.rooms || []
+            });
+            return;
+        }
+
+        // Fallback: Fetch from Bakalari if cache is empty
+        console.log('⚠️  No cached definitions, fetching from Bakalari...');
         const response = await axios.get(`${BASE_URL_TEMPLATE}/Actual/Class/ZL`, axiosConfig);
         const $ = cheerio.load(response.data);
         const data = { classes: [], teachers: [], rooms: [] };
@@ -222,6 +240,36 @@ router.get('/definitions', async (req, res) => {
 
         res.json(data);
     } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get groups for a specific class from Firebase cache
+router.get('/groups/:classId', async (req, res) => {
+    try {
+        const { classId } = req.params;
+
+        if (!classId) {
+            return res.status(400).json({ error: 'classId is required' });
+        }
+
+        // Get from Firebase cache
+        const { getFirestore } = require('../backend/firebase-admin-init');
+        const db = getFirestore();
+        const definitionsDoc = await db.collection('definitions').doc('current').get();
+
+        if (!definitionsDoc.exists) {
+            return res.status(404).json({ error: 'Definitions not found in cache' });
+        }
+
+        const data = definitionsDoc.data();
+        const classGroups = data.classGroups || {};
+        const groups = classGroups[classId] || [];
+
+        res.json({ groups });
+
+    } catch (e) {
+        console.error('Get groups error:', e);
         res.status(500).json({ error: e.message });
     }
 });

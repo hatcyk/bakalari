@@ -30,13 +30,21 @@ export function standardizeGroupName(groupName) {
     // Convert to lowercase for easier matching
     const lower = groupName.toLowerCase().trim();
 
-    // If it contains "celá", keep as "celá"
+    // If it contains "celá", skip (we don't include in groups list)
     if (lower.includes('celá') || lower === 'cela') {
-        return 'celá';
+        return ''; // Empty string means skip
+    }
+
+    // Special groups (TV, etc.) - keep as-is
+    // These start with letters followed by optional digits (TVk1, TVDi, TVCh, etc.)
+    // Don't convert these to "1.sk" format
+    if (/^[a-záčďéěíňóřšťúůýž]{2,}/i.test(lower)) {
+        return groupName; // Return original (preserve case)
     }
 
     // Match patterns like "1. skupina", "1.skupina", "1 skupina", "skupina 1", etc.
-    const groupMatch = lower.match(/(\d+)[\.\s]*(?:skupina|sk)?|(?:skupina|sk)[\.\s]*(\d+)/);
+    // IMPORTANT: Use ^ and $ to match whole string, not just part of it
+    const groupMatch = lower.match(/^(\d+)[\.\s]*(?:skupina|sk)?$|^(?:skupina|sk)[\.\s]*(\d+)$/);
     if (groupMatch) {
         const groupNum = groupMatch[1] || groupMatch[2];
         return `${groupNum}.sk`;
@@ -44,7 +52,7 @@ export function standardizeGroupName(groupName) {
 
     // If the group name already contains ".sk", extract just the number part
     if (lower.includes('.sk')) {
-        const numMatch = lower.match(/(\d+)\.sk/);
+        const numMatch = lower.match(/^(\d+)\.sk$/);
         if (numMatch) {
             return `${numMatch[1]}.sk`;
         }

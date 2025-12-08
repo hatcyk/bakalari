@@ -139,6 +139,39 @@ async function loginToBakalari(retries = MAX_RETRIES) {
 }
 
 /**
+ * Standardize group name to normalized format
+ * @param {String} groupName - Raw group name from Bakalari
+ * @returns {String} Standardized name (e.g., "1.sk", "2.sk", "TVDi", "TVk1")
+ */
+function standardizeGroupName(groupName) {
+    if (!groupName) return '';
+
+    const lower = groupName.toLowerCase().trim();
+
+    // "celá třída" - skip, we don't need to list this
+    if (lower.includes('celá') || lower === 'cela') {
+        return ''; // Don't include "celá" in groups list
+    }
+
+    // Special groups (TV, etc.) - keep as-is
+    // These start with letters followed by optional digits (TVk1, TVDi, TVCh, etc.)
+    // Don't convert these to "1.sk" format
+    if (/^[a-záčďéěíňóřšťúůýž]{2,}/i.test(lower)) {
+        return groupName; // Return original (preserve case)
+    }
+
+    // Extrahuj číslo: "1. sk", "skupina 1", "1.skupina" → "1.sk"
+    const groupMatch = lower.match(/^(\d+)[\.\s]*(?:skupina|sk)?$|^(?:skupina|sk)[\.\s]*(\d+)$/);
+    if (groupMatch) {
+        const groupNum = groupMatch[1] || groupMatch[2];
+        return `${groupNum}.sk`;
+    }
+
+    // Return as-is for anything else
+    return groupName;
+}
+
+/**
  * Helper function to abbreviate teacher name from "Surname Firstname" format
  */
 function abbreviateTeacherName(fullName) {
@@ -404,12 +437,46 @@ async function prefetchAllData() {
             };
         }
 
+        // Step 1.5: Extract groups for each class from both Actual and Next schedules
+        // (Some groups like TVDi may only appear in Next schedule)
+        console.log('\n📦 Extracting groups for each class...');
+        const classGroups = {}; // Map: classId -> Set<groupName>
+
+        for (const classEntity of definitions.classes) {
+            try {
+                // Fetch both Actual and Next schedules to get all possible groups
+                const actualLessons = await fetchTimetable('Class', classEntity.id, 'Actual');
+                const nextLessons = await fetchTimetable('Class', classEntity.id, 'Next');
+                const allLessons = [...actualLessons, ...nextLessons];
+
+                const groupsSet = new Set();
+                allLessons.forEach(lesson => {
+                    if (lesson.group) {
+                        // Standardize group name (e.g., "1. skupina" -> "1.sk")
+                        const standardized = standardizeGroupName(lesson.group);
+                        if (standardized) {
+                            groupsSet.add(standardized);
+                        }
+                    }
+                });
+
+                if (groupsSet.size > 0) {
+                    classGroups[classEntity.id] = Array.from(groupsSet).sort((a, b) => a.localeCompare(b));
+                    console.log(`   ${classEntity.name}: ${classGroups[classEntity.id].join(', ')}`);
+                }
+            } catch (error) {
+                console.error(`   Failed to extract groups for ${classEntity.name}:`, error.message);
+            }
+        }
+
         await db.collection('definitions').doc('current').set({
             ...definitions,
+            classGroups: classGroups,
             lastUpdate: new Date().toISOString(),
         });
 
-        console.log(`✅ Definitions saved: ${definitions.classes.length} classes, ${definitions.teachers.length} teachers, ${definitions.rooms.length} rooms`);
+        const totalGroupsExtracted = Object.values(classGroups).reduce((sum, groups) => sum + groups.length, 0);
+        console.log(`✅ Definitions saved: ${definitions.classes.length} classes, ${definitions.teachers.length} teachers, ${definitions.rooms.length} rooms, ${totalGroupsExtracted} groups`);
 
         // Step 2: Calculate total possible requests
         const totalEntities = definitions.classes.length + definitions.teachers.length + definitions.rooms.length;

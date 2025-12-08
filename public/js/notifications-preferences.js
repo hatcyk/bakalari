@@ -295,61 +295,73 @@ function getScheduleTypeLabel(scheduleType) {
 async function getAvailableGroups(watchedTimetable) {
     console.log('🔍 getAvailableGroups called for:', watchedTimetable);
 
+    // Only classes have groups
+    if (watchedTimetable.type !== 'Class') {
+        console.log('   Not a class, no groups available');
+        return [];
+    }
+
     try {
-        // Fetch from Firebase cache using the imported fetchTimetable function
-        console.log('   Fetching from Firebase...');
+        // Fetch groups from database cache via API
+        console.log('   Fetching groups from database cache...');
 
-        const lessons = await fetchTimetable(
-            watchedTimetable.type,
-            watchedTimetable.id,
-            watchedTimetable.scheduleType
-        );
+        const response = await fetch(`/api/groups/${watchedTimetable.id}`);
 
-        if (!lessons || lessons.length === 0) {
-            console.warn('   ⚠️  No lessons in Firebase, using fallback groups');
-            return ['all', 'celá']; // Fallback (bez předpokladu číslovaných skupin)
-        }
-        console.log('   Total lessons:', lessons.length);
-        console.log('   Sample ALL lessons:', lessons.slice(0, 5));
-
-        const lessonsWithGroups = lessons.filter(l => l.group);
-        console.log('   Lessons WITH groups:', lessonsWithGroups.length);
-        console.log('   Sample lessons with groups:', lessonsWithGroups.slice(0, 5));
-
-        // Extrauj unikátní skupiny
-        const groupsSet = new Set(['all']);
-        lessons.forEach(lesson => {
-            console.log(`   Checking lesson: subject="${lesson.subject}", group="${lesson.group}", type="${typeof lesson.group}"`);
-            if (lesson.group) {
-                const original = lesson.group;
-                const std = standardizeGroupName(lesson.group);
-                console.log(`   ✅ Group found: "${original}" → "${std}"`);
-                if (std) groupsSet.add(std);
-            }
-        });
-
-        console.log('   Groups in Set before filtering:', Array.from(groupsSet));
-
-        // Poznámka: "celá třída" není v dropdownu - hodiny bez skupiny
-        // procházejí filtrem vždy automaticky (backend logika)
-
-        // Odeber "all" - uživatel vybere všechny skupiny, pokud je chce všechny
-        groupsSet.delete('all');
-
-        // Pokud nejsou žádné skupiny (všechny hodiny pro celou třídu)
-        if (groupsSet.size === 0) {
-            console.warn('   ⚠️ No groups found - all lessons are for whole class');
-            return []; // Prázdný array = žádné skupiny k výběru
+        if (!response.ok) {
+            throw new Error('Failed to fetch groups from API');
         }
 
-        // Seřaď skupiny abecedně: 1.sk → 2.sk → TVDi → ...
-        const sorted = Array.from(groupsSet).sort((a, b) => a.localeCompare(b));
+        const data = await response.json();
+        const groups = data.groups || [];
 
-        console.log('   ✅ Final groups:', sorted);
-        return sorted;
+        console.log('   ✅ Groups from database:', groups);
+
+        if (groups.length === 0) {
+            console.warn('   ⚠️ No groups found for this class');
+            return [];
+        }
+
+        return groups;
     } catch (error) {
-        console.error('   ❌ Failed to get groups from Firebase:', error);
-        return []; // Fallback - prázdný array (všechny hodiny pro celou třídu)
+        console.error('   ❌ Failed to get groups from database:', error);
+        console.log('   Falling back to fetching from lessons...');
+
+        // Fallback: Extract groups from lessons (old method)
+        try {
+            const lessons = await fetchTimetable(
+                watchedTimetable.type,
+                watchedTimetable.id,
+                watchedTimetable.scheduleType
+            );
+
+            if (!lessons || lessons.length === 0) {
+                console.warn('   ⚠️  No lessons in Firebase');
+                return [];
+            }
+
+            // Extract unique groups
+            const groupsSet = new Set();
+            lessons.forEach(lesson => {
+                if (lesson.group) {
+                    const std = standardizeGroupName(lesson.group);
+                    if (std) groupsSet.add(std);
+                }
+            });
+
+            if (groupsSet.size === 0) {
+                console.warn('   ⚠️ No groups found in lessons');
+                return [];
+            }
+
+            // Sort groups alphabetically
+            const sorted = Array.from(groupsSet).sort((a, b) => a.localeCompare(b));
+
+            console.log('   ✅ Groups from fallback:', sorted);
+            return sorted;
+        } catch (fallbackError) {
+            console.error('   ❌ Fallback also failed:', fallbackError);
+            return [];
+        }
     }
 }
 
@@ -431,17 +443,22 @@ async function populateGroupFilter(multiselectElement, watchedTimetable, index) 
         option.appendChild(checkbox);
         option.appendChild(span);
 
-        // Toggle on click
-        option.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            checkbox.checked = !checkbox.checked;
-            await handleGroupFilterChange(checkbox, watchedTimetable, groups);
-        });
-
         // Handle checkbox change
         checkbox.addEventListener('change', async (e) => {
             e.stopPropagation();
             await handleGroupFilterChange(checkbox, watchedTimetable, groups);
+        });
+
+        // Toggle on click on the row (but not on checkbox itself)
+        option.addEventListener('click', (e) => {
+            // Only toggle if clicking on the row itself, not the checkbox
+            if (e.target === checkbox) {
+                return; // Let the checkbox handle it
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change'));
         });
 
         optionsContainer.appendChild(option);

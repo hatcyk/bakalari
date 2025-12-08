@@ -423,50 +423,61 @@ async function populateGroupFilter(multiselectElement, watchedTimetable, index) 
     const groups = await getAvailableGroups(watchedTimetable);
     console.log('   Got groups:', groups);
 
+    // Group aggregation: combine related groups (e.g., 1.sk, 1.ak, TVk1 → "1.")
+    const aggregatedGroups = aggregateGroups(groups);
+    console.log('   Aggregated groups:', aggregatedGroups);
+
     // Render checkbox options
     optionsContainer.innerHTML = '';
-    groups.forEach(group => {
+
+    for (const [displayName, subGroups] of Object.entries(aggregatedGroups)) {
         try {
-        const option = document.createElement('div');
-        option.className = 'multiselect-option';
+            const option = document.createElement('div');
+            option.className = 'multiselect-option';
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = `group-${index}-${group}`;
-        checkbox.value = group;
-        checkbox.checked = watchedTimetable.groupFilters.includes(group);
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `group-${index}-${displayName}`;
+            checkbox.value = displayName;
 
-        const span = document.createElement('span');
-        span.textContent = group === 'all' ? 'Všechny skupiny' :
-                          group === 'celá' ? 'Celá třída' : group;
+            // Check if ALL subgroups are selected
+            const allSelected = subGroups.every(sg => watchedTimetable.groupFilters.includes(sg));
+            checkbox.checked = allSelected;
 
-        option.appendChild(checkbox);
-        option.appendChild(span);
-
-        // Handle checkbox change
-        checkbox.addEventListener('change', async (e) => {
-            e.stopPropagation();
-            await handleGroupFilterChange(checkbox, watchedTimetable, groups);
-        });
-
-        // Toggle on click on the row (but not on checkbox itself)
-        option.addEventListener('click', (e) => {
-            // Only toggle if clicking on the row itself, not the checkbox
-            if (e.target === checkbox) {
-                return; // Let the checkbox handle it
+            const span = document.createElement('span');
+            // Show subgroups in tooltip
+            if (subGroups.length > 1) {
+                span.textContent = `${displayName} (${subGroups.join(', ')})`;
+            } else {
+                span.textContent = displayName;
             }
-            e.preventDefault();
-            e.stopPropagation();
-            checkbox.checked = !checkbox.checked;
-            checkbox.dispatchEvent(new Event('change'));
-        });
 
-        optionsContainer.appendChild(option);
-        console.log(`   Added option: value="${group}", checked=${checkbox.checked}`);
+            option.appendChild(checkbox);
+            option.appendChild(span);
+
+            // Handle checkbox change - toggle all subgroups
+            checkbox.addEventListener('change', async (e) => {
+                e.stopPropagation();
+                await handleAggregatedGroupChange(checkbox, watchedTimetable, subGroups);
+            });
+
+            // Toggle on click on the row (but not on checkbox itself)
+            option.addEventListener('click', (e) => {
+                if (e.target === checkbox) {
+                    return; // Let the checkbox handle it
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+            });
+
+            optionsContainer.appendChild(option);
+            console.log(`   Added option: value="${displayName}", subGroups=${subGroups.join(',')}, checked=${checkbox.checked}`);
         } catch (error) {
-            console.error(`❌ Failed to render option for group "${group}":`, error);
+            console.error(`❌ Failed to render option for group "${displayName}":`, error);
         }
-    });
+    }
 
     // Update label based on selection
     updateGroupFilterLabel(label, watchedTimetable.groupFilters);
@@ -491,6 +502,100 @@ async function populateGroupFilter(multiselectElement, watchedTimetable, index) 
     });
 
     console.log('✅ populateGroupFilter finished');
+}
+
+/**
+ * Aggregate groups by number (e.g., 1.sk, 1.ak, TVk1 → "1.")
+ * @param {Array<string>} groups - Array of group names
+ * @returns {Object} Map of display name to subgroups
+ */
+function aggregateGroups(groups) {
+    const aggregated = {};
+
+    groups.forEach(group => {
+        // Extract number from group name
+        // 1.sk, 1.ak → 1
+        // TVk1 → 1
+        // TVDi → TVDi (no number)
+
+        const numMatch = group.match(/^(\d+)\./); // Match "1.sk", "2.ak"
+        const tvMatch = group.match(/^TV[kK](\d+)$/); // Match "TVk1", "TVK2"
+
+        if (numMatch) {
+            // Standard group: 1.sk, 2.ak
+            const num = numMatch[1];
+            const displayName = `${num}.`;
+            if (!aggregated[displayName]) {
+                aggregated[displayName] = [];
+            }
+            aggregated[displayName].push(group);
+        } else if (tvMatch) {
+            // TV group with number: TVk1, TVk2
+            const num = tvMatch[1];
+            const displayName = `${num}.`;
+            if (!aggregated[displayName]) {
+                aggregated[displayName] = [];
+            }
+            aggregated[displayName].push(group);
+        } else {
+            // Special group without number: TVDi, TVCh, etc.
+            // Show as-is
+            aggregated[group] = [group];
+        }
+    });
+
+    // Sort by display name (1., 2., TVDi, ...)
+    const sorted = {};
+    Object.keys(aggregated).sort((a, b) => {
+        // Numbers first, then alphabetically
+        const aNum = parseInt(a);
+        const bNum = parseInt(b);
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            return aNum - bNum;
+        }
+        if (!isNaN(aNum)) return -1;
+        if (!isNaN(bNum)) return 1;
+        return a.localeCompare(b);
+    }).forEach(key => {
+        sorted[key] = aggregated[key].sort();
+    });
+
+    return sorted;
+}
+
+/**
+ * Handle aggregated group checkbox change (toggles all subgroups)
+ */
+async function handleAggregatedGroupChange(checkbox, watchedTimetable, subGroups) {
+    const isChecked = checkbox.checked;
+
+    console.log(`🔄 Aggregated group toggled: subGroups=${subGroups.join(',')} = ${isChecked}`);
+
+    if (isChecked) {
+        // Add all subgroups
+        subGroups.forEach(subGroup => {
+            if (!watchedTimetable.groupFilters.includes(subGroup)) {
+                watchedTimetable.groupFilters.push(subGroup);
+            }
+        });
+    } else {
+        // Remove all subgroups
+        watchedTimetable.groupFilters = watchedTimetable.groupFilters.filter(g =>
+            !subGroups.includes(g)
+        );
+    }
+
+    // Update label
+    const label = checkbox.closest('.multiselect-dropdown').querySelector('.multiselect-label');
+    updateGroupFilterLabel(label, watchedTimetable.groupFilters);
+
+    // Save to server
+    try {
+        await saveWatchedTimetables(state.watchedTimetables);
+        console.log(`✅ Group filters saved successfully:`, watchedTimetable.groupFilters);
+    } catch (error) {
+        console.error('❌ Failed to save group filters:', error);
+    }
 }
 
 /**
@@ -530,18 +635,52 @@ async function handleGroupFilterChange(checkbox, watchedTimetable, allGroups) {
 
 /**
  * Update the multiselect label based on selected groups
- * Poznámka: Hodiny pro celou třídu (bez skupiny) procházejí vždy automaticky
+ * Shows aggregated group names (e.g., "1., 2." instead of "1.sk, 1.ak, TVk1, 2.sk, 2.ak, TVk2")
  */
 function updateGroupFilterLabel(label, groupFilters) {
     if (!groupFilters || groupFilters.length === 0) {
         label.textContent = 'Žádná skupina vybrána';
-    } else if (groupFilters.length === 1) {
-        // Zobraz název vybrané skupiny (např. "1.sk", "2.sk")
-        label.textContent = groupFilters[0];
-    } else if (groupFilters.length === 2) {
-        label.textContent = `${groupFilters.join(', ')}`;
+        return;
+    }
+
+    // Group selected filters by number
+    const aggregated = {};
+    const standalone = [];
+
+    groupFilters.forEach(group => {
+        const numMatch = group.match(/^(\d+)\./);
+        const tvMatch = group.match(/^TV[kK](\d+)$/);
+
+        if (numMatch) {
+            const num = numMatch[1];
+            if (!aggregated[num]) aggregated[num] = [];
+            aggregated[num].push(group);
+        } else if (tvMatch) {
+            const num = tvMatch[1];
+            if (!aggregated[num]) aggregated[num] = [];
+            aggregated[num].push(group);
+        } else {
+            standalone.push(group);
+        }
+    });
+
+    // Build display text
+    const parts = [];
+
+    // Add numbered groups (1., 2., etc.)
+    Object.keys(aggregated).sort((a, b) => parseInt(a) - parseInt(b)).forEach(num => {
+        parts.push(`${num}.`);
+    });
+
+    // Add standalone groups (TVDi, etc.)
+    standalone.forEach(group => parts.push(group));
+
+    if (parts.length === 0) {
+        label.textContent = 'Žádná skupina vybrána';
+    } else if (parts.length <= 3) {
+        label.textContent = parts.join(', ');
     } else {
-        label.textContent = `${groupFilters.length} skupiny vybrány`;
+        label.textContent = `${parts.length} skupiny vybrány`;
     }
 }
 

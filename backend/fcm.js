@@ -450,6 +450,68 @@ async function sendApiRestoredNotification() {
     }
 }
 
+/**
+ * Cleanup old processed changes (older than specified days)
+ * @param {Number} [daysToKeep=2] - Number of days to keep changes (default 2 days)
+ * @returns {Promise<Object>} Cleanup result { deleted, errors }
+ */
+async function cleanupOldChanges(daysToKeep = 2) {
+    try {
+        const db = getFirestore();
+
+        // Calculate cutoff date
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+        const cutoffISO = cutoffDate.toISOString();
+
+        console.log(`\n🧹 [CLEANUP CHANGES] Starting cleanup of changes older than ${daysToKeep} days (before ${cutoffISO})`);
+
+        // Query old processed changes (sent: true AND older than cutoff)
+        const snapshot = await db.collection('changes')
+            .where('sent', '==', true)
+            .where('sentAt', '<', cutoffISO)
+            .get();
+
+        if (snapshot.empty) {
+            console.log(`   No old changes to clean up`);
+            return { deleted: 0, errors: 0 };
+        }
+
+        console.log(`   Found ${snapshot.size} old changes to delete`);
+
+        // Delete in batches (Firestore batch limit is 500)
+        const batchSize = 500;
+        let totalDeleted = 0;
+        let totalErrors = 0;
+
+        for (let i = 0; i < snapshot.docs.length; i += batchSize) {
+            const batch = db.batch();
+            const batchDocs = snapshot.docs.slice(i, i + batchSize);
+
+            batchDocs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+
+            try {
+                await batch.commit();
+                totalDeleted += batchDocs.length;
+                console.log(`   Deleted batch ${Math.floor(i / batchSize) + 1}: ${batchDocs.length} changes`);
+            } catch (error) {
+                totalErrors += batchDocs.length;
+                console.error(`   Error deleting batch ${Math.floor(i / batchSize) + 1}:`, error.message);
+            }
+        }
+
+        console.log(`✅ [CLEANUP CHANGES] Completed: ${totalDeleted} deleted, ${totalErrors} errors\n`);
+
+        return { deleted: totalDeleted, errors: totalErrors };
+
+    } catch (error) {
+        console.error(`❌ [CLEANUP CHANGES ERROR] Failed to cleanup old changes:`, error.message);
+        return { deleted: 0, errors: 1, error: error.message };
+    }
+}
+
 module.exports = {
     sendNotificationToToken,
     sendNotificationToTokens,
@@ -457,4 +519,5 @@ module.exports = {
     processPendingChanges,
     sendApiOutageNotification,
     sendApiRestoredNotification,
+    cleanupOldChanges,
 };

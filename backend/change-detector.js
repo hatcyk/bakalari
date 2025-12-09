@@ -6,9 +6,13 @@
 /**
  * Create a unique key for a lesson
  * Used to match lessons between old and new snapshots
+ * Includes group to properly detect changes for group-specific lessons
  */
 function createLessonKey(lesson) {
-    return `${lesson.day}-${lesson.hour}-${lesson.subject}-${lesson.teacher}`;
+    // Include group in key to distinguish between group-specific lessons
+    // If no group, use empty string to ensure uniqueness
+    const group = lesson.group || '';
+    return `${lesson.day}-${lesson.hour}-${lesson.subject}-${lesson.teacher}-${group}`;
 }
 
 /**

@@ -7,7 +7,7 @@ const cron = require('node-cron');
 const { prefetchAllData } = require('./prefetch');
 const { initializeFirebaseAdmin, getFirestore } = require('./firebase-admin-init');
 const { sendLessonReminders } = require('./lesson-reminder');
-const { sendApiOutageNotification, sendApiRestoredNotification, processPendingChanges } = require('./fcm');
+const { sendApiOutageNotification, sendApiRestoredNotification, processPendingChanges, cleanupOldChanges } = require('./fcm');
 const { cleanupOldNotifications } = require('./notification-tracker');
 
 let cronJob = null;
@@ -228,13 +228,14 @@ function startCronJob() {
     // Schedule cleanup cron: Daily at midnight (00:00)
     cleanupCron = cron.schedule('0 0 * * *', () => {
         console.log('🧹 Daily cleanup triggered');
-        cleanupOldNotifications(7).catch(err => console.error('Cleanup failed:', err));
+        cleanupOldNotifications(7).catch(err => console.error('Cleanup notifications failed:', err));
+        cleanupOldChanges(2).catch(err => console.error('Cleanup changes failed:', err));
     });
 
     console.log('✅ Cron jobs scheduled:');
     console.log('   - Prefetch: Running every 10 minutes');
     console.log('   - Lesson reminders: Running every minute');
-    console.log('   - Cleanup: Running daily at midnight (old notification records)\n');
+    console.log('   - Cleanup: Running daily at midnight (old notification records & processed changes)\n');
 }
 
 /**
